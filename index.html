@@ -604,6 +604,7 @@
                 <button class="btn btn-sm btn-primary" onclick="window.modifierReductionLocataire(document.getElementById('detail-nom').textContent)"><i class="fas fa-percent"></i> Réduction</button>
                 <button class="btn btn-sm btn-primary" onclick="window.modifierMontantBail(document.getElementById('detail-nom').textContent)"><i class="fas fa-coins"></i> Montant bail</button>
                 <button class="btn btn-sm btn-primary" onclick="window.modifierPrixKwh(document.getElementById('detail-nom').textContent)"><i class="fas fa-bolt"></i> Prix kWh</button>
+                <button class="btn btn-sm btn-primary" onclick="window.modifierIndexInitial(document.getElementById('detail-nom').textContent)"><i class="fas fa-tachometer-alt"></i> Index compteur</button>
                 <button class="btn btn-sm btn-primary" onclick="window.modifierDatesBail(document.getElementById('detail-nom').textContent)"><i class="fas fa-calendar"></i> Dates du bail</button>
                 <button class="btn btn-sm btn-primary" onclick="window.genererContratPDF(document.getElementById('detail-nom').textContent)"><i class="fas fa-file-pdf"></i> Contrat PDF</button>
                 <button class="btn btn-sm btn-danger" onclick="window.supprimerLocataireDirect(document.getElementById('detail-nom').textContent)"><i class="fas fa-trash"></i> Supprimer</button>
@@ -1175,6 +1176,12 @@
                 opt.textContent = `${l.locataire} - ${l.unite} (${(l.montantTotal || 0).toLocaleString()} F)`;
                 chargeSelect.appendChild(opt);
             });
+            // Même piège que pour le choix du bien : avec UN SEUL locataire, le navigateur le
+            // sélectionne déjà tout seul sans déclencher "change" — donc sans cette ligne, les
+            // charges récurrentes ne se pré-remplissaient jamais quand il n'y avait qu'un locataire.
+            if (chargeSelect.options.length > 0 && chargeSelect.value) {
+                chargeSelect.dispatchEvent(new Event('change'));
+            }
         }
 
         const select = document.getElementById('loc-bien-select');
@@ -2697,6 +2704,24 @@
         } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
     };
 
+    // Corrige l'index "précédent" du compteur — utile en cas d'erreur de saisie à la création
+    // du locataire, ou simplement pour ajuster manuellement le point de départ du prochain
+    // relevé. C'est le gestionnaire qui contrôle ça, jamais le locataire.
+    window.modifierIndexInitial = async function(nom) {
+        const loc = toutesLocations.find(l => l.locataire === nom && l.statut !== 'Terminé');
+        if (!loc) { window.showToast('⚠️ Locataire non trouvé'); return; }
+        if (!loc.sousCompteur) { window.showToast('ℹ️ Ce locataire n\'a pas de sous-compteur.'); return; }
+        const nouvelIndex = prompt(`Corriger l'index précédent du compteur pour ${nom} :`, loc.indexPrecedent || 0);
+        if (nouvelIndex === null) return;
+        const val = parseInt(nouvelIndex);
+        if (isNaN(val) || val < 0) { window.showToast('⚠️ Valeur invalide'); return; }
+        try {
+            await updateDoc(doc(db, "locations", loc.id), { indexPrecedent: val });
+            window.showToast(`✅ Index de ${nom} corrigé à ${val}`);
+            renderAll();
+        } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
+    };
+
     window.modifierPrixKwh = async function(nom) {
         const loc = toutesLocations.find(l => l.locataire === nom);
         if (!loc) { window.showToast('⚠️ Locataire non trouvé'); return; }
@@ -3461,7 +3486,13 @@
         // --- Widget "Baux actifs" cliquable ---
         const bauxContainer = document.getElementById('modal-baux-list');
         if (bauxContainer) {
-            const bauxActifs = toutesLocations.filter(l => l.statut !== 'Terminé');
+            const bauxActifs = toutesLocations.filter(l => l.statut !== 'Terminé').map(l => {
+                const dateFin = calculerDateFin(l.debut, l.dureeValeur, l.dureeUnite);
+                const joursRestants = dateFin ? Math.ceil((dateFin - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                return { ...l, joursRestants };
+            });
+            // Les baux qui se terminent bientôt remontent en premier, pour qu'on les voie tout de suite.
+            bauxActifs.sort((a, b) => (a.joursRestants ?? 9999) - (b.joursRestants ?? 9999));
             const kpiBaux = document.getElementById('kpi-baux');
             if (kpiBaux) kpiBaux.textContent = bauxActifs.length;
             if (bauxActifs.length === 0) {
@@ -3471,8 +3502,13 @@
                     const badge = l.statut === 'Impayé' ? '<span class="badge badge-danger">Impayé</span>'
                         : l.statut === 'Payé' ? '<span class="badge badge-success">Payé</span>'
                         : '<span class="badge badge-warning">En attente</span>';
-                    return `<div class="submission-item">
-                        <div><span style="font-weight:600;">${l.locataire}</span> <span class="text-muted" style="font-size:0.7rem;">${l.unite || ''}</span><br><span class="text-muted" style="font-size:0.7rem;">${(l.montantTotal || 0).toLocaleString()} F · ${badge}</span></div>
+                    // Mise en évidence claire d'un bail qui se termine bientôt (14 jours ou moins).
+                    const finProche = l.joursRestants !== null && l.joursRestants <= 14;
+                    const badgeFin = l.joursRestants === null ? ''
+                        : l.joursRestants <= 0 ? '<span class="badge badge-danger">⌛ Terminé</span>'
+                        : finProche ? `<span class="badge badge-warning">🔔 Fin dans ${l.joursRestants} j</span>` : '';
+                    return `<div class="submission-item" style="${finProche ? 'border-left:3px solid var(--warning); padding-left:8px;' : ''}">
+                        <div><span style="font-weight:600;">${l.locataire}</span> <span class="text-muted" style="font-size:0.7rem;">${l.unite || ''}</span><br><span class="text-muted" style="font-size:0.7rem;">${(l.montantTotal || 0).toLocaleString()} F · ${badge} ${badgeFin}</span></div>
                         <button class="btn btn-sm btn-primary" onclick="window.closeModal('modal-baux-actifs'); window.openDetail('${l.locataire}')" title="Voir le détail"><i class="fas fa-eye"></i></button>
                     </div>`;
                 }).join('');
@@ -3554,7 +3590,32 @@
             : (loc.charges || []).reduce((s, c) => s + (c.montant || 0), 0);
         const dateFin = calculerDateFin(loc.debut, loc.dureeValeur, loc.dureeUnite);
         document.getElementById('loc-bail-periode').textContent = `${loc.debut || 'N/A'} → ${dateFin ? dateFin.toLocaleDateString() : 'N/A'}`;
-        document.getElementById('loc-countdown').textContent = dateFin ? `⏳ J-${Math.max(0, Math.ceil((dateFin - new Date()) / (1000 * 60 * 60 * 24)))}` : '⏳ --';
+        // Mise en valeur claire du compte à rebours : normal en temps voulu, orange quand ça
+        // approche, rouge et explicite ("oublié") en cas de retard réel constaté (statut Impayé).
+        const countdownEl = document.getElementById('loc-countdown');
+        const cardBailEl = countdownEl ? countdownEl.closest('.card') : null;
+        if (countdownEl) {
+            const joursRestants = dateFin ? Math.ceil((dateFin - new Date()) / (1000 * 60 * 60 * 24)) : null;
+            if (loc.statut === 'Impayé') {
+                countdownEl.innerHTML = '⚠️ Paiement oublié';
+                countdownEl.style.color = 'var(--danger)';
+                if (cardBailEl) cardBailEl.style.background = 'var(--danger-soft, #fbeae9)';
+            } else if (joursRestants !== null && joursRestants <= 0) {
+                countdownEl.innerHTML = '⌛ Bail terminé';
+                countdownEl.style.color = 'var(--danger)';
+                if (cardBailEl) cardBailEl.style.background = 'var(--danger-soft, #fbeae9)';
+            } else if (joursRestants !== null && joursRestants <= 7) {
+                countdownEl.innerHTML = `⏳ J-${joursRestants}`;
+                countdownEl.style.color = 'var(--warning)';
+                if (cardBailEl) cardBailEl.style.background = 'var(--warning-soft, #fbf1de)';
+            } else {
+                countdownEl.innerHTML = joursRestants !== null ? `⏳ J-${joursRestants}` : '⏳ --';
+                countdownEl.style.color = '';
+                if (cardBailEl) cardBailEl.style.background = '';
+            }
+            countdownEl.style.fontSize = '1.4rem';
+            countdownEl.style.fontWeight = '700';
+        }
         document.getElementById('loc-kpi-bail').textContent = montantBail.toLocaleString() + ' F';
         document.getElementById('loc-kpi-charges').textContent = Math.round(montantCharges).toLocaleString() + ' F';
         document.getElementById('loc-kpi-signaux').textContent = (loc.signalements || []).filter(s => s.statut !== 'resolu').length;
