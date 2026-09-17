@@ -524,7 +524,7 @@
 
     <!-- Modale Notifications -->
     <div id="modal-notifications" class="modal-overlay hidden" onclick="if(event.target===this) window.closeModal('modal-notifications')">
-        <div class="modal"><button class="modal-close" onclick="window.closeModal('modal-notifications')">&times;</button><h3><i class="far fa-bell"></i> Notifications</h3><div id="notifications-liste"><div class="text-muted" style="padding:8px 0;">Aucune notification</div></div></div>
+        <div class="modal"><button class="modal-close" onclick="window.closeModal('modal-notifications')">&times;</button><h3><i class="far fa-bell"></i> Notifications</h3><button class="btn btn-sm btn-outline btn-block mb-8" onclick="window.activerNotificationsPush(); window.showToast('🔔 Vérifie que ton téléphone a bien demandé la permission.')"><i class="fas fa-bell"></i> Activer les notifications sur cet appareil</button><div id="notifications-liste"><div class="text-muted" style="padding:8px 0;">Aucune notification</div></div></div>
     </div>
 
     <!-- Modale Baux actifs -->
@@ -813,6 +813,7 @@
         reauthenticateWithCredential,
         EmailAuthProvider
     } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
 
     // ============================================================
     // CONFIG FIREBASE
@@ -831,6 +832,43 @@
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
     const auth = getAuth(app);
+
+    // ============================================================
+    // NOTIFICATIONS PUSH (écran verrouillé, app fermée)
+    // ------------------------------------------------------------
+    // ⚠️ Remplace la valeur ci-dessous par TA clé VAPID, trouvable dans :
+    // Firebase Console → ⚙️ Paramètres du projet → Cloud Messaging →
+    // "Certificats Web Push" → génère une paire de clés si tu n'en as pas encore.
+    const VAPID_KEY = "BGGRxhOy9JKnGZh0EYgP9e5nDlu8NxWscbggji0q5XUEf20NNU-r1jXNS84XYL0U_xM64vlZkIANkbzLQ4Tpbsc";
+
+    async function activerNotificationsPush() {
+        try {
+            if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+            if (VAPID_KEY.includes("COLLE_TA_CLE")) return; // pas encore configuré, on ne fait rien
+
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") return;
+
+            const registration = await navigator.serviceWorker.ready;
+            const messaging = getMessaging(app);
+            const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+            if (!token || !currentUser) return;
+
+            // On enregistre ce jeton sur le profil de l'utilisateur connecté, pour que le
+            // serveur sache où envoyer ses futures notifications.
+            const q = query(collection(db, "users"), where("uid", "==", currentUser.uid));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                const tokensActuels = snap.docs[0].data().fcmTokens || [];
+                if (!tokensActuels.includes(token)) {
+                    await updateDoc(doc(db, "users", snap.docs[0].id), {
+                        fcmTokens: [...tokensActuels, token]
+                    });
+                }
+            }
+        } catch (e) { console.warn("Notifications push non activées:", e); }
+    }
+    window.activerNotificationsPush = activerNotificationsPush;
 
     // ============================================================
     // CRÉATION DE COMPTE SANS PERDRE LA SESSION EN COURS
@@ -1614,7 +1652,8 @@
                 dureeUnite: nouvelleUnite,
                 montantTotal: nouveauLoyer,
                 statut: "En attente",
-                statutPaiementBail: "en_attente"
+                statutPaiementBail: "en_attente",
+                rappelExpirationEnvoye: false
                 // l'historique des paiements (paiements passés liés à ce locationId) n'est jamais touché
             });
             await creerNotification(loc.locataireId, '🔄 Bail renouvelé',
@@ -4089,6 +4128,7 @@
                 .then(() => {
                     if (currentUserData) {
                         renderAll();
+                        setTimeout(() => activerNotificationsPush(), 3000);
                     } else {
                         window.showPage('page-login');
                     }
