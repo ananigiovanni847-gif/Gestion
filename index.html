@@ -2051,9 +2051,11 @@
                 await creerNotification(loc.locataireId, '✅ Bail validé', `Votre paiement de bail de ${paiement.montant.toLocaleString()} F a été validé.`);
                 window.showToast('✅ Paiement validé !');
             } else if (paiement.type === 'charges') {
-                if (paiement.statut === 'a_confirmer') {
-                    // Validation unique : le gestionnaire a vu l'index et la preuve, il confirme →
-                    // le cycle se referme, l'index redevient verrouillé jusqu'à la prochaine charge émise.
+                if (paiement.statut === 'a_confirmer' || paiement.statut === 'a_payer') {
+                    // Validation directe possible dès que la charge est déclarée (avec ou sans
+                    // correction d'index au préalable) — utile quand le gestionnaire sait déjà
+                    // que le paiement a été fait (ex. espèces reçues en main propre), sans attendre
+                    // que le locataire clique sur "Envoyer mon reçu" dans l'app.
                     await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
                     await updateDoc(doc(db, "locations", loc.id), { statutPaiementCharges: "paye", chargeOuverte: false });
                     await creerNotification(loc.locataireId, '✅ Paiement confirmé', `Votre paiement de charges de ${paiement.montant.toLocaleString()} F a été confirmé reçu.`);
