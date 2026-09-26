@@ -1977,7 +1977,7 @@
                 description: "Charge du mois",
                 photoIndexUrl: photoUrl || ""
             });
-            const updateLoc = { statutPaiementCharges: "a_payer", charges: [] };
+            const updateLoc = { statutPaiementCharges: "a_payer", charges: [], chargeOuverte: false };
             if (nouvelIndexAEnregistrer !== null) {
                 updateLoc.indexPrecedent = nouvelIndexAEnregistrer;
                 if (photoUrl) updateLoc.photoCompteur = photoUrl;
@@ -2051,11 +2051,9 @@
                 await creerNotification(loc.locataireId, '✅ Bail validé', `Votre paiement de bail de ${paiement.montant.toLocaleString()} F a été validé.`);
                 window.showToast('✅ Paiement validé !');
             } else if (paiement.type === 'charges') {
-                if (paiement.statut === 'a_confirmer' || paiement.statut === 'a_payer') {
-                    // Validation directe possible dès que la charge est déclarée (avec ou sans
-                    // correction d'index au préalable) — utile quand le gestionnaire sait déjà
-                    // que le paiement a été fait (ex. espèces reçues en main propre), sans attendre
-                    // que le locataire clique sur "Envoyer mon reçu" dans l'app.
+                if (paiement.statut === 'a_confirmer') {
+                    // Validation unique : le gestionnaire a vu l'index et la preuve, il confirme →
+                    // le cycle se referme, l'index redevient verrouillé jusqu'à la prochaine charge émise.
                     await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
                     await updateDoc(doc(db, "locations", loc.id), { statutPaiementCharges: "paye", chargeOuverte: false });
                     await creerNotification(loc.locataireId, '✅ Paiement confirmé', `Votre paiement de charges de ${paiement.montant.toLocaleString()} F a été confirmé reçu.`);
@@ -2174,6 +2172,14 @@
         const locationId = select.value;
         const loc = toutesLocations.find(l => l.id === locationId && l.statut !== 'Terminé');
         if (!loc) { window.showToast('⚠️ Locataire introuvable'); return; }
+        // On empêche d'empiler une nouvelle charge tant que l'ancienne n'est pas réglée (payée ET
+        // confirmée par vous) — ça évite toute confusion côté locataire entre plusieurs charges à
+        // la fois, surtout si un paiement a été fait en main propre sans être validé dans l'app.
+        const paiementEnCoursCharges = tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer', 'a_confirmer'].includes(p.statut));
+        if (paiementEnCoursCharges) {
+            window.showToast(`⚠️ ${loc.locataire} a déjà une charge en attente de règlement — validez-la (ou rejetez-la) avant d'en générer une nouvelle.`);
+            return;
+        }
 
         const lines = document.querySelectorAll('#charge-lines-container .charge-line');
         let details = [], total = 0;
@@ -2244,6 +2250,9 @@
                 // (générées manuellement ou non), on n'en rajoute pas par-dessus.
                 if (loc.charges && loc.charges.length > 0) continue;
                 if (!loc.chargesRecurrentes || loc.chargesRecurrentes.length === 0) continue; // pas encore de modèle, rien à générer
+                // Même protection anti-empilement que la génération manuelle.
+                const paiementEnCoursCharges = tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer', 'a_confirmer'].includes(p.statut));
+                if (paiementEnCoursCharges) continue;
 
                 const nouvellesCharges = [...(loc.charges || []), ...loc.chargesRecurrentes];
                 const total = loc.chargesRecurrentes.reduce((s, c) => s + (c.montant || 0), 0);
