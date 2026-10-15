@@ -223,7 +223,7 @@
                 </div>
             </div>
             <div class="flex" style="gap:8px;">
-                <span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')">
+                <button class="btn btn-sm btn-outline" onclick="window.ouvrirAide(false)" title="Aide"><i class="fas fa-question-circle"></i> Aide</button><span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')">
                     <i class="far fa-bell"></i> <span id="sa-notif-count">0</span>
                 </span>
                 <button class="btn btn-sm btn-outline" onclick="window.openModal('modal-sa-change-password')" title="Changer mon mot de passe">
@@ -258,11 +258,13 @@
             <button class="tab active" onclick="window.saSwitchTab('sa-tab-gerants')"><i class="fas fa-users"></i> Gérants</button>
             <button class="tab" onclick="window.saSwitchTab('sa-tab-biens')"><i class="fas fa-home"></i> Biens</button>
             <button class="tab" onclick="window.saSwitchTab('sa-tab-locataires')"><i class="fas fa-user-friends"></i> Locataires</button>
+            <button class="tab" onclick="window.saSwitchTab('sa-tab-historique')"><i class="fas fa-history"></i> Historique</button>
             <button class="tab" onclick="window.saSwitchTab('sa-tab-service')"><i class="fas fa-tools"></i> Service</button>
         </div>
 
         <!-- Onglet Gérants -->
         <div id="sa-tab-gerants">
+            <div class="card mt-12" id="graph-connexions-sa"></div>
             <div class="card mt-12">
                 <div class="flex" style="gap:8px;">
                     <input type="text" id="sa-search" placeholder="🔍 Rechercher..." class="search-input" style="flex:1;" oninput="window.filtrerUtilisateurs(this.value)" />
@@ -318,6 +320,17 @@
         </div>
 
         <!-- Onglet Service -->
+        <div id="sa-tab-historique" class="hidden">
+            <div class="card mt-12">
+                <div class="flex-between"><span style="font-weight:600;"><i class="fas fa-history"></i> Historique des paiements</span>
+                    <select id="sa-hist-filtre" onchange="window.renderSaHistorique()" style="max-width:150px;">
+                        <option value="tous">Tout</option><option value="bail">Bail</option><option value="charges">Charges</option><option value="paye">Validés</option><option value="attente">En attente</option><option value="rejete">Rejetés</option>
+                    </select></div>
+                <div class="text-muted" style="font-size:0.7rem; margin-top:4px;">Touchez un nom pour voir tout son historique.</div>
+                <div id="sa-hist-liste" class="mt-8"></div>
+            </div>
+        </div>
+
         <div id="sa-tab-service" class="hidden">
             <div class="card mt-12">
                 <div class="flex-between"><span style="font-weight:600;"><i class="fas fa-tools"></i> Centre de Service Global</span></div>
@@ -342,7 +355,7 @@
                 <div style="font-size:0.75rem;color:#64748b; margin-top:2px;" id="resume-biologie"><i class="fas fa-building"></i> 0 biens · 0 locataires · 0 occupés</div>
             </div>
             <div class="flex" style="gap:6px;">
-                <span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')"><i class="far fa-bell"></i> <span id="proprio-notif-count">0</span></span>
+                <button class="btn btn-sm btn-outline" onclick="window.ouvrirAide(false)" title="Aide"><i class="fas fa-question-circle"></i> Aide</button><span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')"><i class="far fa-bell"></i> <span id="proprio-notif-count">0</span></span>
                 <button class="deconnect-btn" onclick="window.deconnecter()"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
@@ -375,6 +388,7 @@
         </div>
 
         <div id="proprio-tab1">
+            <div class="card mt-12" id="graph-connexions-proprio"></div>
             <div class="kpi-grid">
                 <div class="kpi-item" onclick="window.openModal('modal-baux-actifs')"><div class="number" id="kpi-baux">0</div><div class="label">Baux actifs</div></div>
                 <div class="kpi-item" onclick="window.openModal('modal-impayes')"><div class="number" style="color:#b91c1c;" id="kpi-impayes">0</div><div class="label">Impayés</div></div>
@@ -445,7 +459,7 @@
     <div id="page-locataire" class="hidden">
         <div class="flex-between">
             <div class="flex"><div class="avatar-lg">👤</div><div><div style="font-weight:700;font-size:1rem;" id="locataire-nom">Jean KOUASSI</div><div style="font-size:0.75rem;color:#64748b;" id="locataire-residence">🏠 Aucun logement</div><div style="font-size:0.75rem;color:#64748b;" id="locataire-tel"><i class="fas fa-phone"></i> +228 90XX XX XX</div></div></div>
-            <div class="flex" style="gap:6px;"><span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')"><i class="far fa-bell"></i> <span id="locataire-notif-count">0</span></span><button class="deconnect-btn" onclick="window.deconnecter()"><i class="fas fa-sign-out-alt"></i></button></div>
+            <div class="flex" style="gap:6px;"><button class="btn btn-sm btn-outline" onclick="window.ouvrirAide(false)" title="Aide"><i class="fas fa-question-circle"></i> Aide</button><span class="badge badge-info badge-clickable" onclick="window.openModal('modal-notifications')"><i class="far fa-bell"></i> <span id="locataire-notif-count">0</span></span><button class="deconnect-btn" onclick="window.deconnecter()"><i class="fas fa-sign-out-alt"></i></button></div>
         </div>
 
         <div class="tabs">
@@ -458,6 +472,7 @@
         </div>
 
         <div id="loc-tab1">
+            <div id="loc-alertes" class="mb-8"></div>
             <div class="card card-primary"><div class="flex-between"><span>📅 Bail : <span id="loc-bail-periode">Aucun</span></span><span class="countdown" style="font-size:1.2rem;" id="loc-countdown">⏳ --</span></div></div>
             <div class="kpi-grid mt-12">
                 <div class="kpi-item" onclick="window.switchTabLocataire('loc-tab2')"><div class="number" style="color:#2563eb;" id="loc-kpi-bail">0 F</div><div class="label">Bail</div></div>
@@ -521,6 +536,18 @@
     <!-- ========================================================== -->
     <!-- ========== MODALES ========== -->
     <!-- ========================================================== -->
+
+    <!-- Modale Aide / Tutoriel -->
+    <div id="modal-aide" class="modal-overlay hidden" onclick="if(event.target===this) window.closeModal('modal-aide')">
+        <div class="modal" style="max-width:440px;">
+            <button class="modal-close" onclick="window.closeModal('modal-aide')">&times;</button>
+            <div id="aide-contenu"></div>
+            <div class="flex-between mt-16" style="gap:8px;">
+                <button class="btn btn-outline" id="aide-prec" onclick="window.aideNav(-1)"><i class="fas fa-arrow-left"></i> Retour</button>
+                <button class="btn btn-primary" id="aide-suiv" onclick="window.aideNav(1)">Suivant <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modale Notifications -->
     <div id="modal-notifications" class="modal-overlay hidden" onclick="if(event.target===this) window.closeModal('modal-notifications')">
@@ -700,7 +727,18 @@
                 <div class="detail-item"><div class="label">Revenu total</div><div class="value" id="sa-detail-revenus">0 F</div></div>
                 <div class="detail-item"><div class="label">Téléphone</div><div class="value" id="sa-detail-telephone">-</div></div>
             </div>
+            <div class="separator"></div>
+            <div style="font-weight:600; font-size:0.85rem;">Ses locataires</div>
+            <div id="sa-detail-locataires-liste" class="mt-8"></div>
             <button class="btn btn-primary btn-block mt-12" onclick="window.closeModal('modal-sa-detail-gestionnaire')">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Modale : historique complet d'une personne -->
+    <div id="modal-sa-hist-personne" class="modal-overlay hidden" onclick="if(event.target===this) window.closeModal('modal-sa-hist-personne')">
+        <div class="modal" style="max-width:520px;"><button class="modal-close" onclick="window.closeModal('modal-sa-hist-personne')">&times;</button>
+            <h3 id="sa-hist-personne-titre" style="font-size:1.05rem;">Historique</h3>
+            <div id="sa-hist-personne-contenu" class="mt-8"></div>
         </div>
     </div>
 
@@ -1077,12 +1115,14 @@
                 await chargerDonneesSuperAdmin();
                 renderAll();
                 window.showToast('👋 Bienvenue Super Admin !');
+                apresConnexionReussie();
             } else if (currentUserData.role === "proprietaire") {
                 window.showPage('page-proprio');
                 document.getElementById('proprio-nom').textContent = currentUserData.nom || "Gestionnaire";
                 await chargerDonneesProprietaire(uid);
                 renderAll();
                 window.showToast('👋 Bienvenue gestionnaire !');
+                apresConnexionReussie();
             } else if (currentUserData.role === "locataire") {
                 window.showPage('page-locataire');
                 document.getElementById('locataire-nom').textContent = currentUserData.nom || "Jean KOUASSI";
@@ -1090,6 +1130,7 @@
                 await chargerDonneesLocataire(uid);
                 renderAll();
                 window.showToast('👋 Bienvenue locataire !');
+                apresConnexionReussie();
             } else {
                 window.showToast('⚠️ Rôle inconnu : ' + currentUserData.role);
                 window.showPage('page-login');
@@ -1209,6 +1250,8 @@
         if (unsubNotifications) { unsubNotifications(); unsubNotifications = null; }
         if (unsubDemandes) { unsubDemandes(); unsubDemandes = null; }
         if (unsubUtilisateurs) { unsubUtilisateurs(); unsubUtilisateurs = null; }
+        if (unsubConnexions) { unsubConnexions(); unsubConnexions = null; }
+        toutesConnexions = [];
     }
 
     // ============================================================
@@ -1622,7 +1665,12 @@
         if (!loc) { window.showToast('⚠️ Locataire introuvable'); return; }
         locationIdEnRenouvellement = locationId;
         document.getElementById('renew-locataire').textContent = loc.locataire;
-        document.getElementById('renew-date').value = new Date().toISOString().split('T')[0];
+        // Le nouveau bail démarre à l'échéance de l'ancien (pas de trou, pas de chevauchement).
+        const ancienneFin = calculerDateFin(loc.debut, loc.dureeValeur, loc.dureeUnite);
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('renew-date').value = ancienneFin
+            ? `${ancienneFin.getFullYear()}-${pad(ancienneFin.getMonth() + 1)}-${pad(ancienneFin.getDate())}`
+            : new Date().toISOString().split('T')[0];
         document.getElementById('renew-duree').value = loc.dureeValeur || 12;
         document.getElementById('renew-unite').value = loc.dureeUnite || 'mois';
         document.getElementById('renew-loyer').value = loc.montantTotal || 0;
@@ -1646,6 +1694,16 @@
         }
         if (btn) { if (btn.disabled) return; btn.disabled = true; btn.dataset.original = btn.innerHTML; btn.innerHTML = '⏳ En cours...'; }
         try {
+            if (loc.statut === 'Terminé' && loc.bienId) {
+                // L'espace avait été libéré : on vérifie qu'il est toujours disponible avant de le reprendre.
+                const bien = tousBiens.find(b => b.id === loc.bienId);
+                const pris = toutesLocations.some(l => l.id !== loc.id && l.bienId === loc.bienId && l.unite === loc.unite && l.statut !== 'Terminé');
+                if (pris || (bien && (bien.unitesOccupees || 0) >= (bien.unites || 1))) {
+                    window.showToast('⚠️ Cet espace a été reloué entre-temps, impossible de renouveler.');
+                    return;
+                }
+                await updateDoc(doc(db, "biens", loc.bienId), { unitesOccupees: increment(1) });
+            }
             await updateDoc(doc(db, "locations", loc.id), {
                 debut: nouvelleDate,
                 dureeValeur: nouvelleDuree,
@@ -1666,10 +1724,57 @@
         finally { if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.original; } }
     };
 
+    // Fin de bail sans renouvellement : l'espace redevient disponible, l'historique est conservé.
+    window.libererEspace = async function(locationId, btn) {
+        const loc = toutesLocations.find(l => l.id === locationId);
+        if (!loc || loc.statut === 'Terminé') return;
+        if (!confirm(`Libérer l'espace de ${loc.locataire} ? Son historique reste conservé et l'espace pourra être reloué.`)) return;
+        if (btn) { if (btn.disabled) return; btn.disabled = true; }
+        try {
+            await updateDoc(doc(db, "locations", loc.id), { statut: 'Terminé' });
+            if (loc.bienId) await updateDoc(doc(db, "biens", loc.bienId), { unitesOccupees: increment(-1) });
+            await creerNotification(loc.locataireId, '🏁 Bail terminé', 'Votre bail est arrivé à son terme. Merci pour votre confiance !');
+            window.showToast('✅ Espace libéré');
+            renderAll();
+        } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); if (btn) btn.disabled = false; }
+    };
+
+    // ---------- RENOUVELLEMENT DU BAIL (côté locataire) ----------
+    function joursDeDuree(v, u) {
+        const n = parseInt(v) || 0;
+        return n * ({ jours: 1, semaines: 7, mois: 30, annees: 365 }[u] || 30);
+    }
+    // Montant du renouvellement = loyer actuel proportionnel à la durée choisie.
+    function montantRenouvellement(loc, v, u) {
+        const base = joursDeDuree(loc.dureeValeur, loc.dureeUnite);
+        if (!base) return loc.montantTotal || 0;
+        return Math.round((loc.montantTotal || 0) * joursDeDuree(v, u) / base);
+    }
+    window.majMontantRenouvLoc = function() {
+        const loc = getCurrentLocataireLocation();
+        const el = document.getElementById('renew-loc-montant');
+        if (!loc || !el) return;
+        const v = document.getElementById('renew-loc-duree').value;
+        const u = document.getElementById('renew-loc-unite').value;
+        el.textContent = montantRenouvellement(loc, v, u).toLocaleString() + ' F';
+    };
+    // Lit le formulaire de renouvellement s'il est affiché (sinon : paiement normal du bail).
+    function lireRenouvellementLoc(loc) {
+        const d = document.getElementById('renew-loc-duree');
+        const u = document.getElementById('renew-loc-unite');
+        if (!d || !u) return null;
+        const v = parseInt(d.value);
+        if (!v || v <= 0) return { erreur: true };
+        return { dureeValeur: v, dureeUnite: u.value, montant: montantRenouvellement(loc, v, u.value) };
+    }
+
     window.soumettrePaiementBailCapture = async function(btn) {
         const loc = getCurrentLocataireLocation();
         if (!loc) { window.showToast('⚠️ Aucun bail trouvé'); return; }
-        if (loc.statutPaiementBail === 'paye') { window.showToast('✅ Le bail est déjà payé pour cette période.'); return; }
+        const renouv = lireRenouvellementLoc(loc);
+        if (renouv && renouv.erreur) { window.showToast('⚠️ Indiquez la durée du renouvellement'); return; }
+        if (!renouv && loc.statutPaiementBail === 'paye') { window.showToast('✅ Le bail est déjà payé pour cette période.'); return; }
+        const montantAPayer = renouv ? renouv.montant : loc.montantTotal;
         if (btn) { if (btn.disabled) return; btn.disabled = true; btn.dataset.original = btn.innerHTML; btn.innerHTML = '⏳ En attente...'; }
         const input = document.createElement('input');
         input.type = 'file';
@@ -1685,16 +1790,17 @@
                     locataireId: currentUser.uid,
                     proprietaireId: loc.proprietaireId,
                     type: "bail",
-                    montant: loc.montantTotal,
+                    montant: montantAPayer,
                     methode: "mobile_money",
                     statut: "en_attente",
                     dateSoumission: serverTimestamp(),
                     captureUrl: url,
-                    description: "Paiement bail via Mobile Money"
+                    description: renouv ? "Renouvellement de bail via Mobile Money" : "Paiement bail via Mobile Money",
+                    ...(renouv ? { renouvellement: { dureeValeur: renouv.dureeValeur, dureeUnite: renouv.dureeUnite } } : {})
                 });
-                await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "en_attente" });
-                await creerNotification(loc.proprietaireId, '📸 Paiement bail (Mobile Money)',
-                    `${currentUserData.nom} a soumis une capture de paiement de bail de ${loc.montantTotal.toLocaleString()} F`);
+                if (!renouv) await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "en_attente" });
+                await creerNotification(loc.proprietaireId, renouv ? '🔄 Renouvellement de bail (Mobile Money)' : '📸 Paiement bail (Mobile Money)',
+                    `${currentUserData.nom} a soumis une capture de paiement ${renouv ? 'de renouvellement (' + renouv.dureeValeur + ' ' + renouv.dureeUnite + ') ' : 'de bail '}de ${montantAPayer.toLocaleString()} F`);
                 window.showToast('📸 Capture de paiement soumise !');
                 renderAll();
             } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
@@ -1707,8 +1813,11 @@
     window.soumettrePaiementBailCash = async function(btn) {
         const loc = getCurrentLocataireLocation();
         if (!loc) { window.showToast('⚠️ Aucun bail trouvé'); return; }
-        if (loc.statutPaiementBail === 'paye') { window.showToast('✅ Le bail est déjà payé pour cette période.'); return; }
-        if (!confirm('💰 Confirmez-vous avoir payé le bail en espèces au propriétaire ?')) return;
+        const renouv = lireRenouvellementLoc(loc);
+        if (renouv && renouv.erreur) { window.showToast('⚠️ Indiquez la durée du renouvellement'); return; }
+        if (!renouv && loc.statutPaiementBail === 'paye') { window.showToast('✅ Le bail est déjà payé pour cette période.'); return; }
+        const montantAPayer = renouv ? renouv.montant : loc.montantTotal;
+        if (!confirm('💰 Confirmez-vous avoir payé ' + (renouv ? 'le renouvellement' : 'le bail') + ' en espèces au propriétaire ?')) return;
         if (btn) { if (btn.disabled) return; btn.disabled = true; btn.dataset.original = btn.innerHTML; btn.innerHTML = '⏳ En attente...'; }
         try {
             await addDoc(collection(db, "paiements"), {
@@ -1716,15 +1825,16 @@
                 locataireId: currentUser.uid,
                 proprietaireId: loc.proprietaireId,
                 type: "bail",
-                montant: loc.montantTotal,
+                montant: montantAPayer,
                 methode: "cash",
                 statut: "en_attente",
                 dateSoumission: serverTimestamp(),
-                description: "Paiement bail en espèces (déclaration)"
+                description: renouv ? "Renouvellement de bail en espèces (déclaration)" : "Paiement bail en espèces (déclaration)",
+                ...(renouv ? { renouvellement: { dureeValeur: renouv.dureeValeur, dureeUnite: renouv.dureeUnite } } : {})
             });
-            await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "en_attente" });
-            await creerNotification(loc.proprietaireId, '💵 Paiement bail (espèces)',
-                `${currentUserData.nom} déclare avoir payé le bail de ${loc.montantTotal.toLocaleString()} F en espèces.`);
+            if (!renouv) await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "en_attente" });
+            await creerNotification(loc.proprietaireId, renouv ? '🔄 Renouvellement de bail (espèces)' : '💵 Paiement bail (espèces)',
+                `${currentUserData.nom} déclare avoir payé ${renouv ? 'le renouvellement (' + renouv.dureeValeur + ' ' + renouv.dureeUnite + ') ' : 'le bail '}de ${montantAPayer.toLocaleString()} F en espèces.`);
             window.showToast('✅ Déclaration de paiement en espèces soumise.');
             renderAll();
         } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
@@ -1759,11 +1869,13 @@
             .sort((a, b) => (b.dateSoumission?.seconds || 0) - (a.dateSoumission?.seconds || 0));
         const enAttenteConfirmation = paiementsBail.find(p => p.statut === 'en_attente');
         const bailPaye = loc.statutPaiementBail === 'paye';
+        const joursRestantsBail = dateFin ? Math.ceil((dateFin - new Date()) / 86400000) : null;
+        const renouvelable = bailPaye && joursRestantsBail !== null && joursRestantsBail <= 7;
 
         let etape = 1;
         if (enAttenteConfirmation) etape = 2;
-        if (bailPaye) etape = 3;
-        if (badgeEl) badgeEl.textContent = bailPaye ? 'Réglé' : enAttenteConfirmation ? 'Envoyé' : 'À payer';
+        if (bailPaye && !enAttenteConfirmation && !renouvelable) etape = 3;
+        if (badgeEl) badgeEl.textContent = enAttenteConfirmation ? 'Envoyé' : renouvelable ? (joursRestantsBail <= 0 ? 'À renouveler' : 'Bientôt fini') : bailPaye ? 'Réglé' : 'À payer';
 
         const pastilles = [{ n: 1, label: 'Payer' }, { n: 2, label: 'Envoyé' }, { n: 3, label: 'Réglé' }];
         stepperEl.innerHTML = pastilles.map(p => `
@@ -1783,8 +1895,8 @@
             <div class="separator"></div>
         `;
 
-        // --- Réglé : figé jusqu'au prochain renouvellement ---
-        if (bailPaye) {
+        // --- Réglé : figé jusqu'au prochain renouvellement (sauf paiement déjà envoyé ou fin de bail proche) ---
+        if (bailPaye && !enAttenteConfirmation && !renouvelable) {
             contenuEl.innerHTML = infosBail + `<div class="text-center" style="padding:10px 0;">
                 <i class="fas fa-check-circle" style="font-size:1.6rem; color:var(--success);"></i>
                 <div style="font-weight:600; margin-top:8px;">Bail réglé</div>
@@ -1799,9 +1911,31 @@
             contenuEl.innerHTML = infosBail + `<div class="text-center" style="padding:10px 0;">
                 <i class="fas fa-paper-plane" style="font-size:1.6rem; color:var(--accent);"></i>
                 <div style="font-weight:600; margin-top:8px;">Paiement envoyé !</div>
-                <div class="text-muted mt-8" style="font-size:0.8rem;">Votre gestionnaire vérifie votre règlement. Votre reçu sera disponible dès validation.</div>
+                <div class="text-muted mt-8" style="font-size:0.8rem;">${enAttenteConfirmation.renouvellement ? '🔄 Renouvellement de ' + enAttenteConfirmation.renouvellement.dureeValeur + ' ' + enAttenteConfirmation.renouvellement.dureeUnite + ' — ' : ''}Votre gestionnaire vérifie votre règlement. Votre reçu sera disponible dès validation.</div>
                 <div style="font-size:1.3rem; font-weight:700; margin-top:10px;">${enAttenteConfirmation.montant.toLocaleString()} F</div>
             </div>`;
+            return;
+        }
+
+        // --- Fin de bail proche / terminé et déjà réglé : renouveler et payer la nouvelle période ---
+        if (renouvelable) {
+            const uDef = loc.dureeUnite || 'mois', vDef = loc.dureeValeur || 1;
+            const optU = ['jours','semaines','mois','annees'].map(x => `<option value="${x}" ${x === uDef ? 'selected' : ''}>${x === 'annees' ? 'ans' : x}</option>`).join('');
+            contenuEl.innerHTML = infosBail + `
+                <div class="text-center">
+                    <div style="font-weight:600;">${joursRestantsBail <= 0 ? '⌛ Votre bail est terminé' : '⏳ Votre bail finit dans ' + joursRestantsBail + ' jour(s)'}</div>
+                    <div class="text-muted mt-8" style="font-size:0.8rem;">Renouvelez vite 😉 La nouvelle période commence le <strong>${dateFin.toLocaleDateString('fr-FR')}</strong> (fin de votre bail actuel).</div>
+                </div>
+                <div class="flex mt-16" style="gap:8px;">
+                    <input type="number" id="renew-loc-duree" min="1" value="${vDef}" oninput="window.majMontantRenouvLoc()" style="flex:1;" />
+                    <select id="renew-loc-unite" onchange="window.majMontantRenouvLoc()" style="flex:1;">${optU}</select>
+                </div>
+                <div class="text-center" style="font-size:2rem; font-weight:700; margin-top:10px; color:var(--ink); letter-spacing:-0.02em;" id="renew-loc-montant">${montantRenouvellement(loc, vDef, uDef).toLocaleString()} F</div>
+                ${htmlNumerosMobileMoney()}
+                <div class="flex mt-16" style="gap:8px;">
+                    <button class="btn btn-primary btn-block" onclick="window.soumettrePaiementBailCapture(this)"><i class="fas fa-camera"></i> Mobile Money</button>
+                    <button class="btn btn-outline btn-block" onclick="window.soumettrePaiementBailCash(this)"><i class="fas fa-money-bill-wave"></i> Espèces</button>
+                </div>`;
             return;
         }
 
@@ -2046,12 +2180,39 @@
 
             if (paiement.type === 'bail') {
                 if (paiement.statut !== 'en_attente') { window.showToast('ℹ️ Ce paiement a déjà été traité.'); if (btn) btn.disabled = false; return; }
-                await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
-                await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "paye", statut: "Payé" });
-                await creerNotification(loc.locataireId, '✅ Bail validé', `Votre paiement de bail de ${paiement.montant.toLocaleString()} F a été validé.`);
+                if (paiement.renouvellement) {
+                    // Renouvellement : la nouvelle période démarre à l'ÉCHÉANCE de l'ancienne, pour la durée payée.
+                    const ancienneFin = calculerDateFin(loc.debut, loc.dureeValeur, loc.dureeUnite);
+                    const pad2 = n => String(n).padStart(2, '0');
+                    const nouveauDebut = ancienneFin ? `${ancienneFin.getFullYear()}-${pad2(ancienneFin.getMonth() + 1)}-${pad2(ancienneFin.getDate())}` : new Date().toISOString().split('T')[0];
+                    if (loc.statut === 'Terminé' && loc.bienId) {
+                        const bien = tousBiens.find(b => b.id === loc.bienId);
+                        const pris = toutesLocations.some(l => l.id !== loc.id && l.bienId === loc.bienId && l.unite === loc.unite && l.statut !== 'Terminé');
+                        if (pris || (bien && (bien.unitesOccupees || 0) >= (bien.unites || 1))) {
+                            window.showToast('⚠️ Cet espace a été reloué entre-temps, impossible de valider ce renouvellement.');
+                            if (btn) btn.disabled = false; return;
+                        }
+                        await updateDoc(doc(db, "biens", loc.bienId), { unitesOccupees: increment(1) });
+                    }
+                    await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
+                    await updateDoc(doc(db, "locations", loc.id), {
+                        debut: nouveauDebut,
+                        dureeValeur: paiement.renouvellement.dureeValeur,
+                        dureeUnite: paiement.renouvellement.dureeUnite,
+                        montantTotal: paiement.montant,
+                        statutPaiementBail: "paye",
+                        statut: "Payé",
+                        rappelExpirationEnvoye: false
+                    });
+                    await creerNotification(loc.locataireId, '🔄 Renouvellement validé', `Votre bail est renouvelé pour ${paiement.renouvellement.dureeValeur} ${paiement.renouvellement.dureeUnite}, à partir du ${nouveauDebut}.`);
+                } else {
+                    await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
+                    await updateDoc(doc(db, "locations", loc.id), { statutPaiementBail: "paye", statut: "Payé" });
+                    await creerNotification(loc.locataireId, '✅ Bail validé', `Votre paiement de bail de ${paiement.montant.toLocaleString()} F a été validé.`);
+                }
                 window.showToast('✅ Paiement validé !');
             } else if (paiement.type === 'charges') {
-                if (paiement.statut === 'a_confirmer') {
+                if (paiement.statut === 'a_confirmer' || paiement.statut === 'a_payer') {
                     // Validation unique : le gestionnaire a vu l'index et la preuve, il confirme →
                     // le cycle se referme, l'index redevient verrouillé jusqu'à la prochaine charge émise.
                     await updateDoc(doc(db, "paiements", paiementId), { statut: "paye", dateValidation: serverTimestamp() });
@@ -2172,14 +2333,8 @@
         const locationId = select.value;
         const loc = toutesLocations.find(l => l.id === locationId && l.statut !== 'Terminé');
         if (!loc) { window.showToast('⚠️ Locataire introuvable'); return; }
-        // On empêche d'empiler une nouvelle charge tant que l'ancienne n'est pas réglée (payée ET
-        // confirmée par vous) — ça évite toute confusion côté locataire entre plusieurs charges à
-        // la fois, surtout si un paiement a été fait en main propre sans être validé dans l'app.
-        const paiementEnCoursCharges = tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer', 'a_confirmer'].includes(p.statut));
-        if (paiementEnCoursCharges) {
-            window.showToast(`⚠️ ${loc.locataire} a déjà une charge en attente de règlement — validez-la (ou rejetez-la) avant d'en générer une nouvelle.`);
-            return;
-        }
+        const paiementEnCoursCharges = tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer','a_confirmer'].includes(p.statut));
+        if (paiementEnCoursCharges) { window.showToast(`⚠️ ${loc.locataire} a déjà une charge en attente de règlement — validez-la (ou rejetez-la) avant d'en générer une nouvelle.`); return; }
 
         const lines = document.querySelectorAll('#charge-lines-container .charge-line');
         let details = [], total = 0;
@@ -2249,10 +2404,8 @@
                 // Double sécurité : si le locataire a déjà des charges en attente dans son panier
                 // (générées manuellement ou non), on n'en rajoute pas par-dessus.
                 if (loc.charges && loc.charges.length > 0) continue;
+                if (tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer','a_confirmer'].includes(p.statut))) continue; // pas d'empilement
                 if (!loc.chargesRecurrentes || loc.chargesRecurrentes.length === 0) continue; // pas encore de modèle, rien à générer
-                // Même protection anti-empilement que la génération manuelle.
-                const paiementEnCoursCharges = tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer', 'a_confirmer'].includes(p.statut));
-                if (paiementEnCoursCharges) continue;
 
                 const nouvellesCharges = [...(loc.charges || []), ...loc.chargesRecurrentes];
                 const total = loc.chargesRecurrentes.reduce((s, c) => s + (c.montant || 0), 0);
@@ -2566,6 +2719,20 @@
             document.getElementById('sa-detail-revenus').textContent = totalRevenu.toLocaleString() + ' F';
             document.getElementById('sa-detail-telephone').textContent = userData.telephone || '-';
 
+            const listeEl = document.getElementById('sa-detail-locataires-liste');
+            if (listeEl) {
+                const sesLocs = toutesLocations.filter(l => l.proprietaireId === uid && l.statut !== 'Terminé');
+                listeEl.innerHTML = sesLocs.length === 0 ? '<div class="text-muted">Aucun locataire actif</div>' : sesLocs.map(l => {
+                    const pays = tousPaiements.filter(p => p.locationId === l.id && p.statut === 'paye');
+                    const encaisse = pays.reduce((a, p) => a + (p.montant || 0), 0);
+                    const enAttente = tousPaiements.filter(p => p.locationId === l.id && ['en_attente','a_payer','a_confirmer'].includes(p.statut)).reduce((a, p) => a + (p.montant || 0), 0);
+                    return `<div class="submission-item pointer" onclick="window.saHistoriquePersonne('${l.id}')">
+                        <div><span style="font-weight:500;">${l.locataire}</span> <span class="badge ${l.statut === 'Payé' ? 'badge-success' : l.statut === 'Impayé' ? 'badge-danger' : 'badge-warning'}" style="font-size:0.6rem;">${l.statut}</span><br>
+                        <span class="text-muted" style="font-size:0.7rem;">${l.unite || '—'}${l.quartier ? ' · 📍 ' + l.quartier : ''}</span></div>
+                        <div style="text-align:right; font-size:0.75rem;"><strong>${encaisse.toLocaleString()} F</strong> encaissés${enAttente ? `<br><span class="text-muted">${enAttente.toLocaleString()} F en attente</span>` : ''}</div>
+                    </div>`;
+                }).join('');
+            }
             window.openModal('modal-sa-detail-gestionnaire');
         } catch (e) {
             window.showToast('⚠️ Erreur: ' + e.message);
@@ -2679,6 +2846,7 @@
 
         if (!nom) { window.showToast('⚠️ Entrez un nom'); return; }
         try {
+            const ancienBien = tousBiens.find(b => b.id === bienId);
             await updateDoc(doc(db, "biens", bienId), {
                 nom,
                 type,
@@ -2686,6 +2854,12 @@
                 cautionRequise,
                 montantCaution
             });
+            if (ancienBien && (ancienBien.prixBase || 0) !== prix) {
+                const concernes = toutesLocations.filter(l => l.bienId === bienId && l.statut !== 'Terminé' && l.locataireId);
+                for (const l of concernes) {
+                    await creerNotification(l.locataireId, '💰 Le loyer change', `Pour la prochaine période, le loyer de ${nom} passe à ${prix.toLocaleString()} F.`);
+                }
+            }
             window.showToast('✅ Bien modifié !');
             window.closeModal('modal-sa-edit-bien');
             renderAll();
@@ -2903,6 +3077,7 @@
         if (isNaN(val) || val <= 0) { window.showToast('⚠️ Montant invalide'); return; }
         try {
             await updateDoc(doc(db, "locations", loc.id), { montantTotal: val });
+            if (val !== (loc.montantTotal || 0)) await creerNotification(loc.locataireId, '💰 Le loyer change', `Pour cette période, votre loyer passe à ${val.toLocaleString()} F.`);
             window.showToast(`✅ Montant du bail de ${nom} corrigé à ${val.toLocaleString()} F`);
             renderAll();
         } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
@@ -3130,12 +3305,241 @@
     // ============================================================
     // RENDU
     // ============================================================
+
+    // ============================================================
+    // CONNEXIONS : qui est venu dans l'app, jour par jour / semaine par semaine
+    // ============================================================
+    let toutesConnexions = [];
+    let unsubConnexions = null;
+    let graphModeConnexions = 'jour';
+
+    function jourLocal(d) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    async function enregistrerConnexion() {
+        try {
+            if (!currentUser || !currentUserData) return;
+            const jour = jourLocal(new Date());
+            await setDoc(doc(db, "connexions", `${currentUser.uid}_${jour}`), {
+                uid: currentUser.uid,
+                nom: currentUserData.nom || '',
+                role: currentUserData.role || '',
+                jour,
+                date: serverTimestamp()
+            });
+        } catch (e) { console.warn("Connexion non enregistrée:", e); }
+    }
+    function ecouterConnexions() {
+        try {
+            if (unsubConnexions) unsubConnexions();
+            unsubConnexions = onSnapshot(collection(db, "connexions"), (snap) => {
+                toutesConnexions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                try { renderConnexions(); } catch (e) {}
+            }, () => {});
+        } catch (e) {}
+    }
+    window.changerModeGraphConnexions = function(m) { graphModeConnexions = m; renderConnexions(); };
+
+    function dessinerGraphConnexions(el, uidsAutorises) {
+        if (!el) return;
+        const donnees = toutesConnexions.filter(c => !uidsAutorises || uidsAutorises.has(c.uid));
+        const aujourdhui = new Date(); aujourdhui.setHours(0, 0, 0, 0);
+        const barres = [];
+        if (graphModeConnexions === 'jour') {
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(aujourdhui); d.setDate(d.getDate() - i);
+                const j = jourLocal(d);
+                const personnes = new Set(donnees.filter(c => c.jour === j).map(c => c.uid));
+                barres.push({ label: d.toLocaleDateString('fr-FR', { weekday: 'short' }), n: personnes.size });
+            }
+        } else {
+            for (let i = 7; i >= 0; i--) {
+                const fin = new Date(aujourdhui); fin.setDate(fin.getDate() - i * 7);
+                const debut = new Date(fin); debut.setDate(debut.getDate() - 6);
+                const jd = jourLocal(debut), jf = jourLocal(fin);
+                const personnes = new Set(donnees.filter(c => c.jour >= jd && c.jour <= jf).map(c => c.uid));
+                barres.push({ label: i === 0 ? 'Cette sem.' : `-${i} sem.`, n: personnes.size });
+            }
+        }
+        const max = Math.max(1, ...barres.map(b => b.n));
+        const auj = jourLocal(new Date());
+        const nomsAuj = [...new Set(donnees.filter(c => c.jour === auj).map(c => c.nom || 'Inconnu'))];
+        el.innerHTML = `
+            <div class="flex-between">
+                <span style="font-weight:600;">👥 Connexions à l'app</span>
+                <span class="flex" style="gap:4px;">
+                    <button class="btn btn-sm ${graphModeConnexions === 'jour' ? 'btn-primary' : 'btn-outline'}" onclick="window.changerModeGraphConnexions('jour')">Jours</button>
+                    <button class="btn btn-sm ${graphModeConnexions === 'semaine' ? 'btn-primary' : 'btn-outline'}" onclick="window.changerModeGraphConnexions('semaine')">Semaines</button>
+                </span>
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:6px; height:110px; margin-top:12px;">
+                ${barres.map(b => `<div style="flex:1; text-align:center;">
+                    <div style="font-size:0.7rem; font-weight:600;">${b.n}</div>
+                    <div style="height:${Math.round((b.n / max) * 70) + 3}px; background:var(--accent); border-radius:4px 4px 0 0; transition:height .4s var(--ease, ease); opacity:${b.n ? 1 : 0.25};"></div>
+                    <div class="text-muted" style="font-size:0.6rem; margin-top:2px;">${b.label}</div>
+                </div>`).join('')}
+            </div>
+            <div class="text-muted" style="font-size:0.7rem; margin-top:8px;">Personnes différentes connectées. Aujourd'hui : ${nomsAuj.length ? nomsAuj.join(', ') : 'personne pour le moment'}</div>`;
+    }
+    function renderConnexions() {
+        if (!currentUserData) return;
+        if (currentUserData.role === 'superadmin') {
+            dessinerGraphConnexions(document.getElementById('graph-connexions-sa'), null);
+        } else if (currentUserData.role === 'proprietaire') {
+            const uids = new Set(toutesLocations.map(l => l.locataireId).filter(Boolean));
+            uids.add(currentUser.uid);
+            dessinerGraphConnexions(document.getElementById('graph-connexions-proprio'), uids);
+        }
+    }
+
+    // ============================================================
+    // AIDE / TUTORIEL
+    // ============================================================
+    const AIDE_CONTENU = {
+        locataire: [
+            { i: '👋', t: 'Bienvenue !', d: 'Cette appli sert à <strong>payer votre loyer et vos charges</strong>, prévenir votre gestionnaire en cas de problème et garder tous vos reçus. Suivez ces quelques étapes, ça prend 1 minute.' },
+            { i: '📲', t: 'Mettre l\'appli sur votre téléphone', d: '<strong>iPhone (Safari)</strong> : touchez le bouton Partager <i class="fas fa-share-square"></i> puis « Sur l\'écran d\'accueil ».<br><strong>Android (Chrome)</strong> : menu ⋮ puis « Installer l\'application ». Vous l\'ouvrirez ensuite comme n\'importe quelle appli.' },
+            { i: '🔔', t: 'Activer les notifications', d: 'Touchez la cloche <i class="far fa-bell"></i> en haut puis « Activer les notifications ». Vous serez prévenu quand une charge arrive ou qu\'un paiement est validé.' },
+            { i: '🏠', t: 'Payer mon loyer (bail)', d: 'Onglet <strong>Bail</strong>. Choisissez <strong>Mobile Money</strong> (envoyez l\'argent au numéro affiché, faites une capture d\'écran, ajoutez-la) ou <strong>Espèces</strong>. Votre gestionnaire valide, et vous voyez « Réglé ».' },
+            { i: '📸', t: 'Entrer mon index (électricité)', d: 'Quand vous voyez « Nouvelle charge disponible » : <br>1️⃣ <strong>Prenez en photo votre sous-compteur</strong> bien lisible.<br>2️⃣ <strong>Mettez la photo dans l\'appli</strong>.<br>3️⃣ Tapez le chiffre de l\'index, puis « Calculer ». Le montant s\'affiche tout seul. Le champ reste bloqué tant qu\'aucune charge n\'est émise.' },
+            { i: '💳', t: 'Payer ma charge', d: 'Onglet <strong>Paiements</strong> : payez en Mobile Money ou en espèces, puis touchez <strong>« Envoyer mon reçu »</strong>. Votre gestionnaire confirme et la charge passe à « Payé ». Une nouvelle charge ne peut pas commencer avant que la précédente soit validée.' },
+            { i: '🤝', t: 'J\'ai payé en main propre', d: 'Pas de souci : déclarez-le dans l\'appli (bouton Espèces puis « Envoyer »). Votre gestionnaire pourra aussi valider directement qu\'il a bien reçu l\'argent.' },
+            { i: '🔄', t: 'Renouveler mon bail', d: 'Quand il reste 7 jours ou moins, onglet <strong>Bail</strong> : choisissez la durée (1 mois, 6 mois, 1 an…) et payez. La nouvelle période commence <strong>à la fin de l\'ancienne</strong>, sans perdre un seul jour.' },
+            { i: '⚠️', t: 'Signaler un problème', d: 'Onglet <strong>Sign.</strong> : décrivez le souci (fuite, panne…), ajoutez une photo si possible. Vous voyez quand il est « Résolu ».' },
+            { i: '📜', t: 'Retrouver mes reçus', d: 'Onglet <strong>Historique</strong> : tous vos paiements validés (bail et charges), même après un renouvellement. Le bouton <strong>Aide</strong> en haut vous remontre ce guide quand vous voulez.' }
+        ],
+        proprietaire: [
+            { i: '👋', t: 'Bienvenue gestionnaire !', d: 'Voici le fonctionnement en quelques étapes simples. Vous pouvez revoir ce guide à tout moment avec le bouton <strong>Aide</strong>.' },
+            { i: '🏢', t: 'Créer un bien', d: 'Ajoutez vos logements avec leur prix, le nombre d\'unités et la caution éventuelle. La caution est une somme <strong>séquestrée</strong> : elle reste intacte tant qu\'il n\'y a ni dégât ni impayé.' },
+            { i: '👤', t: 'Ajouter un locataire', d: 'Choisissez le bien : prix, caution… se remplissent tout seuls. Indiquez son <strong>quartier</strong>, le prix du kWh et l\'index de départ du sous-compteur. Le locataire reçoit ses accès.' },
+            { i: '⚡', t: 'Générer une charge', d: 'Onglet Charges : choisissez le locataire et ses lignes (ménage, gardien…). Cela ouvre la saisie d\'index chez lui. En fin de mois, l\'appli génère automatiquement si vous avez oublié. <strong>Pas d\'empilement</strong> : impossible tant que la charge précédente n\'est pas réglée.' },
+            { i: '✅', t: 'Valider les paiements', d: 'Dans « Dernières soumissions » : vous voyez la photo du compteur et la preuve de paiement. Vous pouvez <strong>corriger l\'index</strong> (le montant se recalcule) ou <strong>« J\'ai déjà reçu ce paiement »</strong> si le locataire a payé en main propre sans cliquer.' },
+            { i: '🔴', t: 'Impayés et relances', d: 'Les cartes <strong>Impayés</strong> et <strong>Réductions</strong> sont cliquables : liste des locataires, montants, et bouton Relancer.' },
+            { i: '🔄', t: 'Renouvellements', d: 'Dans « Prochaines échéances » : Renouveler (la nouvelle période démarre à l\'échéance) ou libérer l\'espace si le locataire part. Un locataire peut aussi renouveler et payer seul : vous validez ensuite.' },
+            { i: '📊', t: 'Suivi', d: 'Le graphique en haut montre <strong>qui s\'est connecté</strong> par jour ou par semaine. Si vous changez un loyer, le locataire est prévenu automatiquement.' }
+        ],
+        superadmin: [
+            { i: '👑', t: 'Bienvenue Super Admin', d: 'Vous voyez <strong>tout</strong> : gestionnaires, locataires, biens, paiements. Le bouton <strong>Aide</strong> rouvre ce guide.' },
+            { i: '🧑‍💼', t: 'Gérants', d: 'Touchez « Détails » sur un gérant pour voir ses locataires, leur quartier et l\'argent encaissé.' },
+            { i: '🧾', t: 'Historique des paiements', d: 'L\'onglet <strong>Historique</strong> liste tous les paiements (bail et charges). Touchez un nom pour voir tout son historique.' },
+            { i: '🛠️', t: 'Corrections directes', d: 'Vous pouvez valider, corriger un index ou un montant, rejeter, à la place d\'un gestionnaire, depuis les soumissions.' },
+            { i: '👥', t: 'Connexions', d: 'Le graphique en haut montre combien de personnes se connectent chaque jour ou semaine.' }
+        ]
+    };
+    let aideEtape = 0, aideRole = null;
+    function rendreAide() {
+        const etapes = AIDE_CONTENU[aideRole] || [];
+        const e = etapes[aideEtape];
+        if (!e) return;
+        document.getElementById('aide-contenu').innerHTML = `
+            <div class="text-center" style="padding:6px 0 0;">
+                <div style="font-size:2.6rem;">${e.i}</div>
+                <h3 style="margin:8px 0;">${e.t}</h3>
+                <div style="font-size:0.9rem; text-align:left; line-height:1.55;">${e.d}</div>
+                <div style="margin-top:14px;">${etapes.map((_, k) => `<span style="display:inline-block; width:${k === aideEtape ? 18 : 7}px; height:7px; border-radius:4px; margin:0 2px; background:${k === aideEtape ? 'var(--accent)' : 'var(--field)'}; transition:.25s;"></span>`).join('')}</div>
+            </div>`;
+        document.getElementById('aide-prec').style.visibility = aideEtape === 0 ? 'hidden' : 'visible';
+        document.getElementById('aide-suiv').innerHTML = aideEtape === etapes.length - 1 ? 'Terminer ✓' : 'Suivant <i class="fas fa-arrow-right"></i>';
+    }
+    window.aideNav = function(delta) {
+        const etapes = AIDE_CONTENU[aideRole] || [];
+        const n = aideEtape + delta;
+        if (n >= etapes.length) { window.closeModal('modal-aide'); return; }
+        aideEtape = Math.max(0, n);
+        rendreAide();
+    };
+    window.ouvrirAide = function() {
+        aideRole = currentUserData?.role;
+        if (!AIDE_CONTENU[aideRole]) return;
+        aideEtape = 0;
+        rendreAide();
+        window.openModal('modal-aide');
+    };
+    // Tutoriel automatique aux 3 premières entrées de chaque personne.
+    function afficherTutorielSiBesoin() {
+        try {
+            const cle = 'aide_vues_' + currentUser.uid;
+            const vues = parseInt(localStorage.getItem(cle) || '0');
+            if (vues < 3) {
+                localStorage.setItem(cle, String(vues + 1));
+                setTimeout(() => window.ouvrirAide(), 1500);
+            }
+        } catch (e) { /* stockage indisponible : pas de tutoriel automatique */ }
+    }
+    function apresConnexionReussie() {
+        enregistrerConnexion();
+        if (currentUserData.role !== 'locataire') ecouterConnexions();
+        afficherTutorielSiBesoin();
+    }
+
+
+    // ============================================================
+    // SUPER ADMIN : HISTORIQUE DES PAIEMENTS (bail + charges)
+    // ============================================================
+    function libelleStatutPaiement(st) {
+        return st === 'paye' ? ['Validé', 'badge-success'] : st === 'rejete' ? ['Rejeté', 'badge-danger']
+            : st === 'a_payer' ? ['À payer', 'badge-warning'] : st === 'a_confirmer' ? ['À confirmer', 'badge-warning'] : ['En attente', 'badge-warning'];
+    }
+    function dateDuPaiement(p) {
+        const t = (p.dateValidation?.seconds || p.dateSoumission?.seconds || 0);
+        return t ? new Date(t * 1000).toLocaleDateString('fr-FR') : '';
+    }
+    window.renderSaHistorique = function() {
+        const el = document.getElementById('sa-hist-liste');
+        if (!el) return;
+        const f = document.getElementById('sa-hist-filtre')?.value || 'tous';
+        let liste = tousPaiements.slice();
+        if (f === 'bail' || f === 'charges') liste = liste.filter(p => p.type === f);
+        else if (f === 'paye') liste = liste.filter(p => p.statut === 'paye');
+        else if (f === 'rejete') liste = liste.filter(p => p.statut === 'rejete');
+        else if (f === 'attente') liste = liste.filter(p => ['en_attente','a_payer','a_confirmer'].includes(p.statut));
+        liste.sort((a, b) => ((b.dateValidation?.seconds || b.dateSoumission?.seconds || 0) - (a.dateValidation?.seconds || a.dateSoumission?.seconds || 0)));
+        if (liste.length === 0) { el.innerHTML = '<div class="text-muted" style="padding:12px 0; text-align:center;">Aucun paiement</div>'; return; }
+        el.innerHTML = liste.slice(0, 200).map(p => {
+            const loc = toutesLocations.find(l => l.id === p.locationId);
+            const [lbl, cls] = libelleStatutPaiement(p.statut);
+            return `<div class="submission-item pointer" onclick="window.saHistoriquePersonne('${p.locationId}')">
+                <div><span style="font-weight:500;">${loc?.locataire || 'Inconnu'}</span> <span class="badge ${cls}" style="font-size:0.6rem;">${lbl}</span><br>
+                <span class="text-muted" style="font-size:0.7rem;">${p.type === 'bail' ? (p.renouvellement ? '🔄 Renouvellement' : '🏠 Bail') : '⚡ Charges'} · ${p.methode === 'cash' ? 'espèces' : 'mobile money'} · ${dateDuPaiement(p)}</span></div>
+                <strong>${(p.montant || 0).toLocaleString()} F</strong>
+            </div>`;
+        }).join('');
+    };
+    window.saHistoriquePersonne = function(locationId) {
+        const loc = toutesLocations.find(l => l.id === locationId);
+        const pays = tousPaiements.filter(p => p.locationId === locationId)
+            .sort((a, b) => ((b.dateValidation?.seconds || b.dateSoumission?.seconds || 0) - (a.dateValidation?.seconds || a.dateSoumission?.seconds || 0)));
+        const somme = t => pays.filter(p => p.type === t && p.statut === 'paye').reduce((a, p) => a + (p.montant || 0), 0);
+        document.getElementById('sa-hist-personne-titre').textContent = '📜 ' + (loc?.locataire || 'Locataire') + (loc?.quartier ? ' · 📍 ' + loc.quartier : '');
+        document.getElementById('sa-hist-personne-contenu').innerHTML = `
+            <div class="detail-grid">
+                <div class="detail-item"><div class="label">Bail payé</div><div class="value">${somme('bail').toLocaleString()} F</div></div>
+                <div class="detail-item"><div class="label">Charges payées</div><div class="value">${somme('charges').toLocaleString()} F</div></div>
+            </div>
+            <div class="mt-12">${pays.length === 0 ? '<div class="text-muted">Aucun paiement</div>' : pays.map(p => {
+                const [lbl, cls] = libelleStatutPaiement(p.statut);
+                const lignes = (p.lignes || []).map(l => `${l.nom}: ${(l.montant || 0).toLocaleString()} F`).join(' · ');
+                return `<div class="submission-item" style="display:block;">
+                    <div class="flex-between"><span>${p.type === 'bail' ? (p.renouvellement ? '🔄 Renouvellement' : '🏠 Bail') : '⚡ Charges'} <span class="badge ${cls}" style="font-size:0.6rem;">${lbl}</span></span><strong>${(p.montant || 0).toLocaleString()} F</strong></div>
+                    <div class="text-muted" style="font-size:0.7rem;">${dateDuPaiement(p)} · ${p.methode === 'cash' ? 'espèces' : 'mobile money'}${lignes ? '<br>' + lignes : ''}</div>
+                </div>`;
+            }).join('')}</div>`;
+        window.openModal('modal-sa-hist-personne');
+    };
+
     function renderAll() {
         if (!currentUser) return;
-        if (currentUserData?.role === "superadmin") renderSuperAdmin();
-        else if (currentUserData?.role === "proprietaire") renderProprio();
-        else if (currentUserData?.role === "locataire") renderLocataire();
-        mettreAJourNotifications();
+        // Chaque partie est isolée : une erreur d'affichage quelque part ne doit jamais empêcher
+        // les notifications (la cloche) de s'afficher.
+        try {
+            if (currentUserData?.role === "superadmin") renderSuperAdmin();
+            else if (currentUserData?.role === "proprietaire") renderProprio();
+            else if (currentUserData?.role === "locataire") renderLocataire();
+        } catch (e) { console.error("Erreur d'affichage:", e); }
+        try { mettreAJourNotifications(); } catch (e) { console.error("Erreur notifications:", e); }
+        try { renderConnexions(); } catch (e) {}
+        try { if (currentUserData?.role === 'superadmin') window.renderSaHistorique(); } catch (e) {}
     }
 
     function renderSuperAdmin() {
@@ -3254,6 +3658,7 @@
                                 <span style="font-weight:500;">${l.nom}</span>
                                 <br><span class="text-muted" style="font-size:0.7rem;">${l.email}</span>
                                 ${loc ? `<span class="badge badge-success" style="font-size:0.6rem;">${loc.unite}</span>` : ''}
+                                ${(loc?.quartier || l.quartier) ? `<span class="badge badge-info" style="font-size:0.6rem;">📍 ${loc?.quartier || l.quartier}</span>` : ''}
                                 <span class="badge badge-info" style="font-size:0.6rem;">Gestionnaire: ${gestionnaireNom}</span>
                             </div>
                             <div class="flex" style="gap:4px; flex-wrap:wrap;">
@@ -3304,12 +3709,13 @@
                     const aUneElec = (p.lignes || []).some(l => l.type === 'electricite');
                     let statutLabel, actions;
                     if (p.type === 'bail') {
-                        statutLabel = 'Bail · Paiement déclaré';
+                        statutLabel = p.renouvellement ? '🔄 Renouvellement ' + p.renouvellement.dureeValeur + ' ' + p.renouvellement.dureeUnite + ' · Paiement déclaré' : 'Bail · Paiement déclaré';
                         actions = `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Valider le paiement"><i class="fas fa-check"></i> Valider</button>
                                     <button class="btn btn-danger btn-sm" onclick="window.rejeterPaiement('${p.id}', this)" title="Rejeter"><i class="fas fa-times"></i></button>`;
                     } else if (p.statut === 'a_payer') {
-                        statutLabel = 'Charges · Déclarée, en attente de paiement';
-                        actions = aUneElec ? `<button class="btn btn-outline btn-sm" onclick="window.modifierMontantCharge('${p.id}', this)" title="Corriger l'index"><i class="fas fa-pen"></i> Corriger l'index</button>` : '';
+                        statutLabel = '🕐 Charge déclarée — en attente que le locataire paie';
+                        actions = (aUneElec ? `<button class="btn btn-outline btn-sm" onclick="window.modifierMontantCharge('${p.id}', this)" title="Corriger l'index"><i class="fas fa-pen"></i> Corriger l'index</button>` : '')
+                            + `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Paiement déjà reçu (main à main)"><i class="fas fa-check"></i> J'ai déjà reçu ce paiement</button>`;
                     } else {
                         statutLabel = 'Charges · Paiement à confirmer';
                         actions = `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Valider le paiement"><i class="fas fa-check"></i> Valider</button>
@@ -3401,7 +3807,7 @@
             } else {
                 locContainer.innerHTML = toutesLocations.filter(l => l.statut !== 'Terminé').map(l => `
                     <div class="submission-item pointer" onclick="window.openDetail('${l.locataire}')">
-                        <div><span style="font-weight:500;">${l.locataire}</span><br><span class="text-muted">${l.unite || '—'}</span></div>
+                        <div><span style="font-weight:500;">${l.locataire}</span><br><span class="text-muted">${l.unite || '—'}${l.quartier ? ' · 📍 ' + l.quartier : ''}</span></div>
                         <span class="badge ${l.statut === 'Payé' ? 'badge-success' : l.statut === 'Impayé' ? 'badge-danger' : 'badge-warning'}">${l.statut}</span>
                     </div>
                 `).join('');
@@ -3422,12 +3828,13 @@
                     const aUneElec = (p.lignes || []).some(l => l.type === 'electricite');
                     let statutLabel, actions;
                     if (p.type === 'bail') {
-                        statutLabel = 'Bail · Paiement déclaré';
+                        statutLabel = p.renouvellement ? '🔄 Renouvellement ' + p.renouvellement.dureeValeur + ' ' + p.renouvellement.dureeUnite + ' · Paiement déclaré' : 'Bail · Paiement déclaré';
                         actions = `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Valider le paiement"><i class="fas fa-check"></i> Valider</button>
                                     <button class="btn btn-danger btn-sm" onclick="window.rejeterPaiement('${p.id}', this)" title="Rejeter"><i class="fas fa-times"></i></button>`;
                     } else if (p.statut === 'a_payer') {
-                        statutLabel = 'Charges · Déclarée, en attente de paiement';
-                        actions = aUneElec ? `<button class="btn btn-outline btn-sm" onclick="window.modifierMontantCharge('${p.id}', this)" title="Corriger l'index"><i class="fas fa-pen"></i> Corriger l'index</button>` : '';
+                        statutLabel = '🕐 Charge déclarée — en attente que le locataire paie';
+                        actions = (aUneElec ? `<button class="btn btn-outline btn-sm" onclick="window.modifierMontantCharge('${p.id}', this)" title="Corriger l'index"><i class="fas fa-pen"></i> Corriger l'index</button>` : '')
+                            + `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Paiement déjà reçu (main à main)"><i class="fas fa-check"></i> J'ai déjà reçu ce paiement</button>`;
                     } else {
                         statutLabel = 'Charges · Paiement à confirmer';
                         actions = `<button class="btn btn-success btn-sm" onclick="window.validerPaiement('${p.id}', this)" title="Valider le paiement"><i class="fas fa-check"></i> Valider</button>
@@ -3444,15 +3851,22 @@
 
         const echeContainer = document.getElementById('prochaines-echeances');
         if (echeContainer) {
-            const actives = toutesLocations.filter(l => l.statut !== 'Terminé' && l.statut !== 'Impayé');
+            const actives = toutesLocations.filter(l => l.statut !== 'Terminé').map(l => {
+                const fin = calculerDateFin(l.debut, l.dureeValeur, l.dureeUnite);
+                return { l, fin, jours: fin ? Math.ceil((fin - new Date()) / 86400000) : 9999 };
+            }).sort((a, b) => a.jours - b.jours);
             if (actives.length === 0) {
                 echeContainer.innerHTML = '<div class="text-muted" style="padding:12px 0; text-align:center;">Aucune échéance</div>';
             } else {
-                echeContainer.innerHTML = actives.slice(0, 5).map(l => {
-                    const fin = calculerDateFin(l.debut, l.dureeValeur, l.dureeUnite);
+                echeContainer.innerHTML = actives.slice(0, 8).map(({ l, fin, jours }) => {
+                    const expire = jours <= 0;
+                    const etat = expire ? '<span class="badge badge-danger">⌛ Bail terminé</span>' : jours <= 14 ? `<span class="badge badge-warning">🔔 ${jours} j</span>` : '';
                     return `<div class="submission-item">
-                        <div><span style="font-weight:500;">${l.locataire}</span><br><span class="text-muted" style="font-size:0.7rem;">Fin ${fin ? fin.toLocaleDateString() : 'N/A'}</span></div>
+                        <div><span style="font-weight:500;">${l.locataire}</span> ${etat}<br><span class="text-muted" style="font-size:0.7rem;">Fin ${fin ? fin.toLocaleDateString() : 'N/A'}</span></div>
+                        <div class="flex" style="gap:4px;">
                         <button class="btn btn-sm btn-primary" onclick="window.ouvrirRenouvellement('${l.id}')"><i class="fas fa-sync"></i> Renouveler</button>
+                        ${expire ? `<button class="btn btn-sm btn-outline" onclick="window.libererEspace('${l.id}', this)" title="Libérer l'espace"><i class="fas fa-door-open"></i></button>` : ''}
+                        </div>
                     </div>`;
                 }).join('');
             }
@@ -3681,6 +4095,25 @@
             }
             countdownEl.style.fontSize = '1.4rem';
             countdownEl.style.fontWeight = '700';
+        }
+        // --- Messages d'alerte sympathiques ---
+        const alertesEl = document.getElementById('loc-alertes');
+        if (alertesEl) {
+            const pc = tousPaiements.filter(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer','a_confirmer'].includes(p.statut))[0];
+            const pb = tousPaiements.some(p => p.locationId === loc.id && p.type === 'bail' && p.statut === 'en_attente');
+            const al = [];
+            const carte = (couleur, txt, tab) => `<div class="card" style="border-left:4px solid ${couleur}; cursor:pointer; margin-bottom:8px; padding:12px;" onclick="window.switchTabLocataire('${tab}')">${txt}</div>`;
+            if (loc.statut === 'Impayé') al.push(carte('var(--danger)', '🔴 Votre loyer n\'est pas encore réglé. Un petit effort, on y est presque ! <strong>Payer →</strong>', 'loc-tab2'));
+            if (pc && pc.statut === 'a_payer') al.push(carte('var(--warning)', '🕐 Votre dernière charge attend d\'être payée. Réglez-la et envoyez votre reçu avant d\'en commencer une nouvelle 😉 <strong>Voir →</strong>', 'loc-tab3'));
+            if (pc && pc.statut === 'a_confirmer') al.push(carte('var(--accent)', '📨 Reçu envoyé ! Votre gestionnaire doit encore le valider. Patience 🙂', 'loc-tab3'));
+            if (!pc && loc.chargeOuverte === true) al.push(carte('var(--success)', '⚡ Nouvelle charge disponible ! Entrez votre index pour la calculer. <strong>Y aller →</strong>', 'loc-tab3'));
+            if (pb) al.push(carte('var(--accent)', '📨 Paiement du bail envoyé, en attente de validation du gestionnaire.', 'loc-tab2'));
+            if (dateFin && loc.statut !== 'Impayé') {
+                const jr = Math.ceil((dateFin - new Date()) / 86400000);
+                if (jr <= 0) al.push(carte('var(--danger)', '⌛ Votre bail est arrivé à échéance… renouvelez vite 😉 <strong>Renouveler →</strong>', 'loc-tab2'));
+                else if (jr <= 7) al.push(carte('var(--warning)', `⏳ Votre bail finit dans ${jr} jour(s)… pensez à le renouveler 😉 <strong>Renouveler →</strong>`, 'loc-tab2'));
+            }
+            alertesEl.innerHTML = al.join('');
         }
         document.getElementById('loc-kpi-bail').textContent = montantBail.toLocaleString() + ' F';
         document.getElementById('loc-kpi-charges').textContent = Math.round(montantCharges).toLocaleString() + ' F';
