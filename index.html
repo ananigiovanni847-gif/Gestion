@@ -384,12 +384,12 @@
             <button class="tab" onclick="window.switchTabProprio('proprio-tab4')"><i class="fas fa-exclamation-triangle"></i> Sign.</button>
             <button class="tab" onclick="window.switchTabProprio('proprio-tab5')"><i class="fas fa-tools"></i> Service</button>
             <button class="tab" onclick="window.switchTabProprio('proprio-tab6')"><i class="fas fa-file-invoice-dollar"></i> Charges</button>
+            <button class="tab" onclick="window.switchTabProprio('proprio-tab8')"><i class="fas fa-history"></i> Historique</button>
             <button class="tab" onclick="window.switchTabProprio('proprio-tab7')"><i class="fas fa-user-slash"></i> Demandes</button>
         </div>
 
         <div id="proprio-tab1">
-            <div class="card mt-12" id="graph-connexions-proprio"></div>
-            <div class="kpi-grid">
+                        <div class="kpi-grid">
                 <div class="kpi-item" onclick="window.openModal('modal-baux-actifs')"><div class="number" id="kpi-baux">0</div><div class="label">Baux actifs</div></div>
                 <div class="kpi-item" onclick="window.openModal('modal-impayes')"><div class="number" style="color:#b91c1c;" id="kpi-impayes">0</div><div class="label">Impayés</div></div>
                 <div class="kpi-item" onclick="window.openModal('modal-reductions-liste')"><div class="number" style="color:#0b6e4f;" id="kpi-reducs">0</div><div class="label">Réduct.</div></div>
@@ -406,7 +406,7 @@
                 <button class="btn btn-outline btn-sm" onclick="window.openModal('modal-impayes')"><i class="fas fa-exclamation-circle"></i> Impayés</button>
             </div>
             <div class="card mt-12">
-                <div class="flex-between"><span style="font-weight:600; font-size:0.85rem;"><i class="far fa-calendar-alt"></i> Prochaines échéances (30j)</span></div>
+                <div class="flex-between"><span style="font-weight:600; font-size:0.85rem;"><i class="far fa-calendar-alt"></i> Fin des baux · jours restants</span></div>
                 <div id="prochaines-echeances"><div class="text-muted" style="padding:12px 0; text-align:center;">Aucune échéance</div></div>
             </div>
         </div>
@@ -443,6 +443,20 @@
             <div class="card mt-8">
                 <div class="flex-between"><span style="font-weight:600; font-size:0.9rem;">Détail par locataire</span></div>
                 <div id="charges-detail-locataires" style="font-size:0.8rem; margin-top:6px;"></div>
+            </div>
+        </div>
+        <div id="proprio-tab8" class="hidden">
+            <div class="card">
+                <div class="flex-between"><span style="font-weight:600;"><i class="fas fa-history"></i> Historique par mois</span>
+                    <select id="proprio-hist-mois" onchange="window.renderProprioHistorique()" style="max-width:170px;"></select></div>
+                <div id="proprio-hist-resume" class="mt-12"></div>
+                <div class="flex mt-8" style="gap:6px;">
+                    <select id="proprio-hist-filtre" onchange="window.renderProprioHistorique()" style="flex:1;">
+                        <option value="tous">Tout</option><option value="bail">Bail</option><option value="charges">Charges</option><option value="paye">Validés</option><option value="attente">En attente</option>
+                    </select>
+                </div>
+                <div class="text-muted" style="font-size:0.7rem; margin-top:6px;">Touchez un nom pour voir tout son historique.</div>
+                <div id="proprio-hist-liste" class="mt-8"></div>
             </div>
         </div>
         <div id="proprio-tab7" class="hidden">
@@ -731,6 +745,23 @@
             <div style="font-weight:600; font-size:0.85rem;">Ses locataires</div>
             <div id="sa-detail-locataires-liste" class="mt-8"></div>
             <button class="btn btn-primary btn-block mt-12" onclick="window.closeModal('modal-sa-detail-gestionnaire')">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Modale : modifier les charges d'un locataire -->
+    <div id="modal-edit-charges" class="modal-overlay hidden" onclick="if(event.target===this) window.closeModal('modal-edit-charges')">
+        <div class="modal" style="max-width:480px;"><button class="modal-close" onclick="window.closeModal('modal-edit-charges')">&times;</button>
+            <h3 id="ec-titre" style="font-size:1.05rem;">Modifier les charges</h3>
+            <div id="ec-encours"></div>
+            <div style="font-weight:600; font-size:0.85rem; margin-top:12px;">Charges fixes de chaque mois (ménage, gardien…)</div>
+            <label class="flex" style="gap:8px; align-items:center; margin-top:8px; font-size:0.85rem;">
+                <input type="checkbox" id="ec-sans" onchange="window.ecBasculerSans()" style="width:auto;" />
+                <span>Aucune charge fixe : ce locataire remplit <strong>seulement son index</strong> de compteur</span>
+            </label>
+            <div id="ec-fixes" class="mt-8"></div>
+            <button class="btn btn-outline btn-sm mt-8" id="ec-ajout" onclick="window.ecAjouterLigne()"><i class="fas fa-plus"></i> Ajouter une ligne</button>
+            <button class="btn btn-primary btn-block mt-12" onclick="window.ecEnregistrer(this)"><i class="fas fa-save"></i> Enregistrer</button>
+            <button class="btn btn-outline btn-block mt-8" onclick="window.closeModal('modal-edit-charges')">Fermer</button>
         </div>
     </div>
 
@@ -2347,7 +2378,19 @@
                     total += montant; }
             }
         });
-        if (details.length === 0) { window.showToast('⚠️ Ajoutez une ligne avec montant'); return; }
+        if (details.length === 0) {
+            if (!loc.sousCompteur) { window.showToast('⚠️ Ajoutez une ligne avec montant'); return; }
+            // Locataire sans charge fixe : on ouvre seulement la saisie de son index.
+            if (!confirm(`${loc.locataire} n'a pas de charge fixe. Ouvrir seulement la saisie de son index de compteur ?`)) return;
+            try {
+                await updateDoc(doc(db, "locations", loc.id), { chargesRecurrentes: [], indexSeulement: true, derniereGenerationCharge: new Date().toISOString().slice(0, 7), chargeOuverte: true });
+                await creerNotification(loc.locataireId, '⚡ Saisissez votre index', `Vous pouvez maintenant entrer l'index de votre compteur (photo du sous-compteur à l'appui).`);
+                window.showToast(`⚡ Saisie d'index ouverte pour ${loc.locataire}`);
+                window.closeModal('modal-generer-charge');
+                renderAll();
+            } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
+            return;
+        }
 
         if (btn) { if (btn.disabled) return; btn.disabled = true; btn.dataset.original = btn.innerHTML; btn.innerHTML = '⏳ En cours...'; }
         try {
@@ -2405,6 +2448,11 @@
                 // (générées manuellement ou non), on n'en rajoute pas par-dessus.
                 if (loc.charges && loc.charges.length > 0) continue;
                 if (tousPaiements.some(p => p.locationId === loc.id && p.type === 'charges' && ['a_payer','a_confirmer'].includes(p.statut))) continue; // pas d'empilement
+                if (loc.indexSeulement === true && loc.sousCompteur && !loc.chargeOuverte) {
+                    await updateDoc(doc(db, "locations", loc.id), { derniereGenerationCharge: moisActuel, chargeOuverte: true });
+                    await creerNotification(loc.locataireId, '⚡ Saisissez votre index', `C'est la fin du mois : entrez l'index de votre compteur (photo du sous-compteur à l'appui).`);
+                    continue;
+                }
                 if (!loc.chargesRecurrentes || loc.chargesRecurrentes.length === 0) continue; // pas encore de modèle, rien à générer
 
                 const nouvellesCharges = [...(loc.charges || []), ...loc.chargesRecurrentes];
@@ -3386,10 +3434,6 @@
         if (!currentUserData) return;
         if (currentUserData.role === 'superadmin') {
             dessinerGraphConnexions(document.getElementById('graph-connexions-sa'), null);
-        } else if (currentUserData.role === 'proprietaire') {
-            const uids = new Set(toutesLocations.map(l => l.locataireId).filter(Boolean));
-            uids.add(currentUser.uid);
-            dessinerGraphConnexions(document.getElementById('graph-connexions-proprio'), uids);
         }
     }
 
@@ -3417,7 +3461,7 @@
             { i: '✅', t: 'Valider les paiements', d: 'Dans « Dernières soumissions » : vous voyez la photo du compteur et la preuve de paiement. Vous pouvez <strong>corriger l\'index</strong> (le montant se recalcule) ou <strong>« J\'ai déjà reçu ce paiement »</strong> si le locataire a payé en main propre sans cliquer.' },
             { i: '🔴', t: 'Impayés et relances', d: 'Les cartes <strong>Impayés</strong> et <strong>Réductions</strong> sont cliquables : liste des locataires, montants, et bouton Relancer.' },
             { i: '🔄', t: 'Renouvellements', d: 'Dans « Prochaines échéances » : Renouveler (la nouvelle période démarre à l\'échéance) ou libérer l\'espace si le locataire part. Un locataire peut aussi renouveler et payer seul : vous validez ensuite.' },
-            { i: '📊', t: 'Suivi', d: 'Le graphique en haut montre <strong>qui s\'est connecté</strong> par jour ou par semaine. Si vous changez un loyer, le locataire est prévenu automatiquement.' }
+            { i: '📊', t: 'Suivi', d: 'Si vous changez un loyer, le locataire est prévenu automatiquement.' }
         ],
         superadmin: [
             { i: '👑', t: 'Bienvenue Super Admin', d: 'Vous voyez <strong>tout</strong> : gestionnaires, locataires, biens, paiements. Le bouton <strong>Aide</strong> rouvre ce guide.' },
@@ -3469,7 +3513,7 @@
     }
     function apresConnexionReussie() {
         enregistrerConnexion();
-        if (currentUserData.role !== 'locataire') ecouterConnexions();
+        if (currentUserData.role === 'superadmin') ecouterConnexions();
         afficherTutorielSiBesoin();
     }
 
@@ -3528,6 +3572,176 @@
         window.openModal('modal-sa-hist-personne');
     };
 
+
+    // ============================================================
+    // GESTIONNAIRE : HISTORIQUE PAR MOIS (bail + charges)
+    // ============================================================
+    function moisDuPaiement(p) {
+        const t = p.dateValidation?.seconds || p.dateSoumission?.seconds || 0;
+        if (!t) return null;
+        const d = new Date(t * 1000);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    window.renderProprioHistorique = function() {
+        const sel = document.getElementById('proprio-hist-mois');
+        const liste = document.getElementById('proprio-hist-liste');
+        const resume = document.getElementById('proprio-hist-resume');
+        if (!sel || !liste || !resume) return;
+        const mesPaiements = tousPaiements.filter(p => toutesLocations.some(l => l.id === p.locationId));
+        const moisDispo = [...new Set(mesPaiements.map(moisDuPaiement).filter(Boolean))].sort().reverse();
+        const moisCourant = jourLocal(new Date()).slice(0, 7);
+        if (!moisDispo.includes(moisCourant)) moisDispo.unshift(moisCourant);
+        const choisi = moisDispo.includes(sel.value) ? sel.value : moisCourant;
+        const nomMois = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); };
+        sel.innerHTML = moisDispo.map(m => `<option value="${m}" ${m === choisi ? 'selected' : ''}>${nomMois(m)}</option>`).join('');
+        let duMois = mesPaiements.filter(p => moisDuPaiement(p) === choisi);
+        const somme = (arr, t, sts) => arr.filter(p => p.type === t && sts.includes(p.statut)).reduce((a, p) => a + (p.montant || 0), 0);
+        const bailOk = somme(duMois, 'bail', ['paye']);
+        const chOk = somme(duMois, 'charges', ['paye']);
+        const chTotal = somme(duMois, 'charges', ['paye', 'a_payer', 'a_confirmer']);
+        const chReste = chTotal - chOk;
+        resume.innerHTML = `<div class="detail-grid">
+            <div class="detail-item"><div class="label">🏠 Loyers encaissés</div><div class="value">${bailOk.toLocaleString()} F</div></div>
+            <div class="detail-item"><div class="label">⚡ Total des charges</div><div class="value">${chTotal.toLocaleString()} F</div></div>
+            <div class="detail-item"><div class="label">Charges payées</div><div class="value" style="color:var(--success);">${chOk.toLocaleString()} F</div></div>
+            <div class="detail-item"><div class="label">Charges restant à payer</div><div class="value" style="color:${chReste ? 'var(--danger)' : 'var(--success)'};">${chReste.toLocaleString()} F</div></div>
+        </div>`;
+        const f = document.getElementById('proprio-hist-filtre')?.value || 'tous';
+        if (f === 'bail' || f === 'charges') duMois = duMois.filter(p => p.type === f);
+        else if (f === 'paye') duMois = duMois.filter(p => p.statut === 'paye');
+        else if (f === 'attente') duMois = duMois.filter(p => ['en_attente','a_payer','a_confirmer'].includes(p.statut));
+        duMois.sort((a, b) => ((b.dateValidation?.seconds || b.dateSoumission?.seconds || 0) - (a.dateValidation?.seconds || a.dateSoumission?.seconds || 0)));
+        liste.innerHTML = duMois.length === 0 ? '<div class="text-muted" style="padding:12px 0; text-align:center;">Aucun paiement ce mois-ci</div>' : duMois.map(p => {
+            const loc = toutesLocations.find(l => l.id === p.locationId);
+            const [lbl, cls] = libelleStatutPaiement(p.statut);
+            return `<div class="submission-item pointer" onclick="window.saHistoriquePersonne('${p.locationId}')">
+                <div><span style="font-weight:500;">${loc?.locataire || 'Inconnu'}</span> <span class="badge ${cls}" style="font-size:0.6rem;">${lbl}</span><br>
+                <span class="text-muted" style="font-size:0.7rem;">${p.type === 'bail' ? (p.renouvellement ? '🔄 Renouvellement' : '🏠 Bail') : '⚡ Charges'} · ${p.methode === 'cash' ? 'espèces' : 'mobile money'} · ${dateDuPaiement(p)}</span></div>
+                <strong>${(p.montant || 0).toLocaleString()} F</strong>
+            </div>`;
+        }).join('');
+    };
+
+
+    // ============================================================
+    // GESTIONNAIRE : MODIFIER LES CHARGES D'UN LOCATAIRE
+    // ============================================================
+    let ecLocId = null;
+    function ecLigneHtml(nom, montant) {
+        return `<div class="charge-line"><input type="text" placeholder="Libellé" value="${(nom || '').replace(/"/g, '&quot;')}" style="flex:2;" /><input type="number" placeholder="Montant" value="${montant || ''}" style="flex:1;" /><button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" title="Retirer"><i class="fas fa-times"></i></button></div>`;
+    }
+    function ecPaiementEnCours(locId) {
+        return tousPaiements.find(p => p.locationId === locId && p.type === 'charges' && ['a_payer', 'a_confirmer'].includes(p.statut));
+    }
+    window.ecAjouterLigne = function() {
+        document.getElementById('ec-fixes').insertAdjacentHTML('beforeend', ecLigneHtml('', ''));
+    };
+    window.ecBasculerSans = function() {
+        const sans = document.getElementById('ec-sans').checked;
+        document.getElementById('ec-fixes').classList.toggle('hidden', sans);
+        document.getElementById('ec-ajout').classList.toggle('hidden', sans);
+    };
+    window.ouvrirEditCharges = function(locId) {
+        const loc = toutesLocations.find(l => l.id === locId);
+        if (!loc) return;
+        ecLocId = locId;
+        document.getElementById('ec-titre').textContent = '✏️ Charges de ' + loc.locataire;
+        // Charges fixes : modèle du locataire (sinon celles du panier en cours)
+        const modele = (loc.chargesRecurrentes && loc.chargesRecurrentes.length) ? loc.chargesRecurrentes : (loc.charges || []).filter(c => c.type !== 'electricite');
+        document.getElementById('ec-fixes').innerHTML = modele.map(c => ecLigneHtml(c.nom, c.montant)).join('');
+        document.getElementById('ec-sans').checked = loc.indexSeulement === true;
+        window.ecBasculerSans();
+        // Charge déjà soumise / en attente : on peut la corriger ou la supprimer
+        const pe = ecPaiementEnCours(locId);
+        const box = document.getElementById('ec-encours');
+        if (!pe) { box.innerHTML = ''; }
+        else {
+            const lignes = pe.lignes || [];
+            const lignesFixes = lignes.filter(l => l.type !== 'electricite');
+            const elec = lignes.find(l => l.type === 'electricite');
+            box.innerHTML = `<div class="card" style="border-left:4px solid var(--warning); margin-top:10px;">
+                <div style="font-weight:600; font-size:0.85rem;">🕐 Charge en cours : ${(pe.montant || 0).toLocaleString()} F</div>
+                ${elec ? `<div class="text-muted" style="font-size:0.75rem; margin-top:4px;">⚡ ${elec.nom} : ${(elec.montant || 0).toLocaleString()} F (pour corriger l'index, utilisez « Corriger l'index » dans les soumissions)</div>` : ''}
+                <div id="ec-lignes-encours" class="mt-8">${lignesFixes.map(l => ecLigneHtml(l.nom, l.montant)).join('')}</div>
+                <button class="btn btn-outline btn-sm mt-8" onclick="document.getElementById('ec-lignes-encours').insertAdjacentHTML('beforeend', ecLigneHtmlGlobal('', ''))"><i class="fas fa-plus"></i> Ajouter une ligne</button>
+                <div class="flex mt-8" style="gap:6px; flex-wrap:wrap;">
+                    <button class="btn btn-success btn-sm" onclick="window.ecCorrigerEnCours('${pe.id}', this)"><i class="fas fa-check"></i> Corriger cette charge</button>
+                    <button class="btn btn-danger btn-sm" onclick="window.ecSupprimerEnCours('${pe.id}', this)"><i class="fas fa-trash"></i> Supprimer cette charge</button>
+                </div>
+            </div>`;
+        }
+        window.openModal('modal-edit-charges');
+    };
+    window.ecLigneHtmlGlobal = ecLigneHtml;
+    function lireLignesDe(containerId) {
+        const out = [];
+        document.querySelectorAll('#' + containerId + ' .charge-line').forEach(line => {
+            const inp = line.querySelectorAll('input');
+            const montant = parseFloat(inp[1].value) || 0;
+            if (montant > 0) out.push({ nom: inp[0].value.trim() || 'Charge', montant });
+        });
+        return out;
+    }
+    window.ecEnregistrer = async function(btn) {
+        const loc = toutesLocations.find(l => l.id === ecLocId);
+        if (!loc) return;
+        const sans = document.getElementById('ec-sans').checked;
+        const lignes = sans ? [] : lireLignesDe('ec-fixes');
+        if (!sans && lignes.length === 0) { window.showToast('⚠️ Ajoutez une ligne avec un montant, ou cochez « Aucune charge fixe »'); return; }
+        if (btn) { if (btn.disabled) return; btn.disabled = true; }
+        try {
+            const maj = { chargesRecurrentes: lignes, indexSeulement: sans };
+            // Si une charge fixe attendait encore dans le panier (pas encore soumise), on la met à jour aussi.
+            if ((loc.charges || []).length > 0) maj.charges = lignes;
+            await updateDoc(doc(db, "locations", loc.id), maj);
+            window.showToast(sans ? `✅ ${loc.locataire} : index seulement, plus de charge fixe.` : `✅ Charges de ${loc.locataire} mises à jour.`);
+            window.closeModal('modal-edit-charges');
+            renderAll();
+        } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
+        finally { if (btn) btn.disabled = false; }
+    };
+    window.ecCorrigerEnCours = async function(paiementId, btn) {
+        const pe = tousPaiements.find(p => p.id === paiementId);
+        if (!pe || !['a_payer', 'a_confirmer'].includes(pe.statut)) { window.showToast('ℹ️ Cette charge ne peut plus être modifiée.'); return; }
+        const elec = (pe.lignes || []).filter(l => l.type === 'electricite');
+        const fixes = lireLignesDe('ec-lignes-encours');
+        const nouvellesLignes = [...fixes, ...elec];
+        const total = nouvellesLignes.reduce((a, l) => a + (l.montant || 0), 0);
+        if (nouvellesLignes.length === 0) { window.showToast('⚠️ Il ne reste aucune ligne : utilisez « Supprimer cette charge »'); return; }
+        if (btn) { if (btn.disabled) return; btn.disabled = true; }
+        try {
+            await updateDoc(doc(db, "paiements", paiementId), { lignes: nouvellesLignes, montant: total, montantCorrige: true });
+            const loc = toutesLocations.find(l => l.id === pe.locationId);
+            if (loc) await creerNotification(loc.locataireId, '✏️ Charge corrigée', `Le gestionnaire a corrigé votre charge : ${total.toLocaleString()} F.`);
+            window.showToast(`✏️ Charge corrigée : ${total.toLocaleString()} F`);
+            window.closeModal('modal-edit-charges');
+            renderAll();
+        } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
+        finally { if (btn) btn.disabled = false; }
+    };
+    window.ecSupprimerEnCours = async function(paiementId, btn) {
+        const pe = tousPaiements.find(p => p.id === paiementId);
+        if (!pe || !['a_payer', 'a_confirmer'].includes(pe.statut)) { window.showToast('ℹ️ Cette charge ne peut plus être supprimée.'); return; }
+        const loc = toutesLocations.find(l => l.id === pe.locationId);
+        if (!confirm(`Supprimer définitivement cette charge de ${(pe.montant || 0).toLocaleString()} F${loc ? ' pour ' + loc.locataire : ''} ? Le locataire n'aura plus rien à payer.`)) return;
+        if (btn) { if (btn.disabled) return; btn.disabled = true; }
+        try {
+            await deleteDoc(doc(db, "paiements", paiementId));
+            if (loc) {
+                const maj = { statutPaiementCharges: "en_attente", charges: [], chargeOuverte: false, derniereGenerationCharge: null };
+                const elec = (pe.lignes || []).find(l => l.type === 'electricite');
+                // L'index enregistré revient à celui d'avant cette charge erronée.
+                if (elec && loc.indexPrecedent === elec.indexNouveau) maj.indexPrecedent = elec.indexPrecedent;
+                await updateDoc(doc(db, "locations", loc.id), maj);
+                await creerNotification(loc.locataireId, '🗑️ Charge annulée', `Une charge saisie par erreur a été annulée. Vous n'avez rien à payer pour celle-ci.`);
+            }
+            window.showToast('🗑️ Charge supprimée');
+            window.closeModal('modal-edit-charges');
+            renderAll();
+        } catch (e) { window.showToast('⚠️ Erreur: ' + e.message); }
+        finally { if (btn) btn.disabled = false; }
+    };
+
     function renderAll() {
         if (!currentUser) return;
         // Chaque partie est isolée : une erreur d'affichage quelque part ne doit jamais empêcher
@@ -3539,7 +3753,7 @@
         } catch (e) { console.error("Erreur d'affichage:", e); }
         try { mettreAJourNotifications(); } catch (e) { console.error("Erreur notifications:", e); }
         try { renderConnexions(); } catch (e) {}
-        try { if (currentUserData?.role === 'superadmin') window.renderSaHistorique(); } catch (e) {}
+        try { if (currentUserData?.role === 'superadmin') window.renderSaHistorique(); if (currentUserData?.role === 'proprietaire') window.renderProprioHistorique(); } catch (e) {}
     }
 
     function renderSuperAdmin() {
@@ -3731,6 +3945,38 @@
         }
     }
 
+
+    function joursRestantsLoc(l) {
+        const fin = calculerDateFin(l.debut, l.dureeValeur, l.dureeUnite);
+        if (!fin) return null;
+        const f = new Date(fin); f.setHours(0, 0, 0, 0);
+        const a = new Date(); a.setHours(0, 0, 0, 0);
+        return Math.round((f - a) / 86400000);
+    }
+    function badgeJoursRestants(l) {
+        const j = joursRestantsLoc(l);
+        if (j === null) return '';
+        if (j < 0) return `<span class="badge badge-danger">⌛ Terminé depuis ${-j} j</span>`;
+        if (j === 0) return '<span class="badge badge-danger">⌛ Finit aujourd\'hui</span>';
+        return `<span class="badge ${j <= 7 ? 'badge-danger' : j <= 30 ? 'badge-warning' : 'badge-success'}">⏳ ${j} jour${j > 1 ? 's' : ''} restant${j > 1 ? 's' : ''}</span>`;
+    }
+    // Tout ce qui est dû par un locataire : loyer ET charges.
+    function impayesDuLocataire(l) {
+        const items = [];
+        const j = joursRestantsLoc(l);
+        if (l.statut === 'Impayé') items.push({ type: 'loyer', txt: 'Loyer non payé', montant: l.montantTotal || 0 });
+        else if (l.statutPaiementBail === 'rejete') items.push({ type: 'loyer', txt: 'Paiement de loyer rejeté', montant: l.montantTotal || 0 });
+        else if (j !== null && j < 0 && l.statutPaiementBail !== 'paye') items.push({ type: 'loyer', txt: 'Bail terminé, non réglé / non renouvelé', montant: l.montantTotal || 0 });
+        const pc = tousPaiements.filter(p => p.locationId === l.id && p.type === 'charges');
+        pc.filter(p => p.statut === 'a_payer').forEach(p => items.push({ type: 'charges', txt: 'Charge déclarée, pas encore payée', montant: p.montant || 0 }));
+        pc.filter(p => p.statut === 'rejete').forEach(p => { if (!pc.some(q => q.statut !== 'rejete' && (q.dateSoumission?.seconds || 0) > (p.dateSoumission?.seconds || 0))) items.push({ type: 'charges', txt: 'Paiement de charges rejeté', montant: p.montant || 0 }); });
+        if (l.chargeOuverte === true && !pc.some(p => ['a_payer','a_confirmer'].includes(p.statut))) {
+            const m = (l.charges || []).reduce((a, c) => a + (c.montant || 0), 0);
+            items.push({ type: 'charges', txt: 'Charge émise, index pas encore saisi', montant: m });
+        }
+        return items;
+    }
+
     function renderProprio() {
         const totalUnites = toutesLocations.filter(l => l.statut !== 'Terminé').length;
         const totalRevenu = toutesLocations.reduce((acc, l) => acc + (l.statut !== 'Terminé' && l.statutPaiementBail === 'paye' ? (l.montantTotal || 0) : 0), 0);
@@ -3739,18 +3985,21 @@
         // automatiquement dès qu'une unité change d'état (unitesOccupees évolue à chaque bail).
         let previsionLoues = 0, previsionNonLoues = 0;
         tousBiens.forEach(b => {
-            const occupees = Math.min(b.unitesOccupees || 0, b.unites || 1);
-            const vacantes = (b.unites || 1) - occupees;
-            previsionLoues += occupees * (b.prixBase || 0);
+            // On compte les baux réellement actifs (et non un compteur qui peut se désynchroniser).
+            const locsActifsBien = toutesLocations.filter(l => l.bienId === b.id && l.statut !== 'Terminé');
+            const total = b.unites || 1;
+            const occupees = Math.min(locsActifsBien.length, total);
+            const vacantes = Math.max(0, total - occupees);
+            previsionLoues += locsActifsBien.reduce((a, l) => a + (l.montantTotal || 0), 0);
             previsionNonLoues += vacantes * (b.prixBase || 0);
         });
         const elLoues = document.getElementById('prevision-loues');
         const elNonLoues = document.getElementById('prevision-non-loues');
-        if (elLoues) elLoues.textContent = previsionLoues.toLocaleString() + ' F / mois';
-        if (elNonLoues) elNonLoues.textContent = previsionNonLoues.toLocaleString() + ' F / mois';
+        if (elLoues) elLoues.textContent = previsionLoues.toLocaleString() + ' F';
+        if (elNonLoues) elNonLoues.textContent = previsionNonLoues.toLocaleString() + ' F' + (previsionNonLoues === 0 ? ' ✅ tout est loué' : '');
         document.getElementById('kpi-baux').textContent = totalUnites;
         document.getElementById('resume-biologie').innerHTML =
-            `<i class="fas fa-building"></i> ${tousBiens.length} biens · ${totalUnites} locataires · ${tousBiens.filter(b => b.unitesOccupees > 0).length} occupés`;
+            `<i class="fas fa-building"></i> ${tousBiens.length} biens · ${totalUnites} locataires · ${tousBiens.filter(b => toutesLocations.some(l => l.bienId === b.id && l.statut !== 'Terminé')).length} occupés`;
         document.getElementById('kpi-reducs').textContent = toutesLocations.filter(l => (l.reduction || 0) > 0).length;
         document.getElementById('kpi-signaux').textContent = toutesLocations.reduce((acc, l) => acc + ((l.signalements || []).filter(s => s.statut !== 'resolu').length), 0);
 
@@ -3807,7 +4056,7 @@
             } else {
                 locContainer.innerHTML = toutesLocations.filter(l => l.statut !== 'Terminé').map(l => `
                     <div class="submission-item pointer" onclick="window.openDetail('${l.locataire}')">
-                        <div><span style="font-weight:500;">${l.locataire}</span><br><span class="text-muted">${l.unite || '—'}${l.quartier ? ' · 📍 ' + l.quartier : ''}</span></div>
+                        <div><span style="font-weight:500;">${l.locataire}</span><br><span class="text-muted">${l.unite || '—'}${l.quartier ? ' · 📍 ' + l.quartier : ''}</span><br>${badgeJoursRestants(l)}</div>
                         <span class="badge ${l.statut === 'Payé' ? 'badge-success' : l.statut === 'Impayé' ? 'badge-danger' : 'badge-warning'}">${l.statut}</span>
                     </div>
                 `).join('');
@@ -3858,11 +4107,10 @@
             if (actives.length === 0) {
                 echeContainer.innerHTML = '<div class="text-muted" style="padding:12px 0; text-align:center;">Aucune échéance</div>';
             } else {
-                echeContainer.innerHTML = actives.slice(0, 8).map(({ l, fin, jours }) => {
+                echeContainer.innerHTML = actives.map(({ l, fin, jours }) => {
                     const expire = jours <= 0;
-                    const etat = expire ? '<span class="badge badge-danger">⌛ Bail terminé</span>' : jours <= 14 ? `<span class="badge badge-warning">🔔 ${jours} j</span>` : '';
                     return `<div class="submission-item">
-                        <div><span style="font-weight:500;">${l.locataire}</span> ${etat}<br><span class="text-muted" style="font-size:0.7rem;">Fin ${fin ? fin.toLocaleDateString() : 'N/A'}</span></div>
+                        <div><span style="font-weight:500;">${l.locataire}</span> ${badgeJoursRestants(l)}<br><span class="text-muted" style="font-size:0.7rem;">Fin le ${fin ? fin.toLocaleDateString('fr-FR') : 'N/A'}</span></div>
                         <div class="flex" style="gap:4px;">
                         <button class="btn btn-sm btn-primary" onclick="window.ouvrirRenouvellement('${l.id}')"><i class="fas fa-sync"></i> Renouveler</button>
                         ${expire ? `<button class="btn btn-sm btn-outline" onclick="window.libererEspace('${l.id}', this)" title="Libérer l'espace"><i class="fas fa-door-open"></i></button>` : ''}
@@ -3924,23 +4172,25 @@
         // --- Widget "Impayés" cliquable, avec actions ---
         const impayesContainer = document.getElementById('modal-impayes-list');
         if (impayesContainer) {
-            const impayes = toutesLocations.filter(l => l.statut !== 'Terminé' && (l.statut === 'Impayé' || l.statutPaiementBail === 'rejete' || l.statutPaiementCharges === 'rejete'));
+            const impayes = toutesLocations.filter(l => l.statut !== 'Terminé').map(l => ({ l, items: impayesDuLocataire(l) })).filter(x => x.items.length > 0);
             const kpiImpayes = document.getElementById('kpi-impayes');
             if (kpiImpayes) kpiImpayes.textContent = impayes.length;
             if (impayes.length === 0) {
-                impayesContainer.innerHTML = '<div class="text-muted" style="padding:8px 0;">Aucun impayé</div>';
+                impayesContainer.innerHTML = '<div class="text-muted" style="padding:8px 0;">Aucun impayé 🎉</div>';
             } else {
-                impayesContainer.innerHTML = impayes.map(l => {
-                    const motif = l.statutPaiementCharges === 'rejete' ? 'Paiement de charges rejeté'
-                        : l.statutPaiementBail === 'rejete' ? 'Paiement de bail rejeté' : 'Bail impayé';
-                    return `<div class="submission-item">
-                        <div><span style="font-weight:600;">${l.locataire}</span><br><span class="text-muted" style="font-size:0.7rem;">${(l.montantTotal || 0).toLocaleString()} F · ${motif}</span></div>
+                const totalDu = impayes.reduce((a, x) => a + x.items.reduce((b, i) => b + i.montant, 0), 0);
+                const totalLoyer = impayes.reduce((a, x) => a + x.items.filter(i => i.type === 'loyer').reduce((b, i) => b + i.montant, 0), 0);
+                impayesContainer.innerHTML = `<div class="detail-grid mb-8">
+                        <div class="detail-item"><div class="label">Loyers dus</div><div class="value">${totalLoyer.toLocaleString()} F</div></div>
+                        <div class="detail-item"><div class="label">Charges dues</div><div class="value">${(totalDu - totalLoyer).toLocaleString()} F</div></div>
+                    </div>` + impayes.map(({ l, items }) => `<div class="submission-item">
+                        <div><span style="font-weight:600;">${l.locataire}</span>
+                        ${items.map(i => `<br><span class="text-muted" style="font-size:0.7rem;">${i.type === 'loyer' ? '🏠' : '⚡'} ${i.txt} · <strong>${i.montant.toLocaleString()} F</strong></span>`).join('')}</div>
                         <div class="flex" style="gap:4px;">
                             <button class="btn btn-sm btn-outline" onclick="window.relancerLocataire('${l.id}', this)" title="Relancer"><i class="fas fa-bell"></i></button>
                             <button class="btn btn-sm btn-primary" onclick="window.closeModal('modal-impayes'); window.openDetail('${l.locataire}')" title="Voir le détail"><i class="fas fa-eye"></i></button>
                         </div>
-                    </div>`;
-                }).join('');
+                    </div>`).join('');
             }
         }
 
@@ -4030,7 +4280,8 @@
                         : soldeLoc > 0 ? '<span class="badge badge-danger">Impayé</span>' : '<span class="badge badge-info">—</span>';
                     return `<div class="submission-item pointer" onclick="window.openDetail('${l.locataire}')">
                         <div><span style="font-weight:600;">${l.locataire}</span> <span class="text-muted" style="font-size:0.7rem;">${l.unite || ''}</span></div>
-                        <div style="text-align:right;">${statutBadge}<br><span class="text-muted" style="font-size:0.7rem;">${payeLoc.toLocaleString()} / ${genereLoc.toLocaleString()} F</span></div>
+                        <div style="text-align:right;">${statutBadge}<br><span class="text-muted" style="font-size:0.7rem;">${payeLoc.toLocaleString()} / ${genereLoc.toLocaleString()} F</span><br>
+                        <button class="btn btn-outline btn-sm" style="margin-top:4px;" onclick="event.stopPropagation(); window.ouvrirEditCharges('${l.id}')"><i class="fas fa-pen"></i> Modifier les charges</button></div>
                     </div>`;
                 }).join('');
             }
